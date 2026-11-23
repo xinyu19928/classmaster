@@ -1,0 +1,2480 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
+<meta name="theme-color" content="#7c3aed" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="班主任" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="application-name" content="班主任管理工作台" />
+<meta name="description" content="一站式班主任管理工具,涵盖学生管理、成绩分析、违纪统计、作业、请假、排座位、家校沟通等核心功能" />
+<meta name="format-detection" content="telephone=no" />
+
+<!-- PWA 图标与清单 -->
+<link rel="manifest" href="/manifest.json" />
+<link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16.png" />
+<link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png" />
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+<link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192.png" />
+
+<!-- iOS 启动画面(可选,简化版) -->
+<meta name="apple-mobile-web-app-capable" content="yes" />
+
+<!-- Open Graph -->
+<meta property="og:title" content="班主任管理工作台" />
+<meta property="og:description" content="一站式班级管理工具 - 可添加到主屏幕离线使用" />
+<meta property="og:image" content="/icons/icon-512.png" />
+
+<title>班主任管理工作台</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+  :root{
+    --bg:#f8f6fc;
+    --sidebar:#1a1025;
+    --sidebar-hover:#2d1b3d;
+    --primary:#7c3aed;
+    --primary-light:#8b5cf6;
+    --accent:#a78bfa;
+    --success:#10b981;
+    --warning:#f59e0b;
+    --danger:#ef4444;
+    --text:#1e1b2e;
+    --muted:#7c7794;
+    --border:#e8e4f0;
+  }
+  *{box-sizing:border-box}
+  body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--text);margin:0;height:100vh;overflow:hidden}
+  .layout{display:flex;height:100vh}
+  /* sidebar */
+  .sidebar{width:240px;background:var(--sidebar);color:#e2e8f0;flex-shrink:0;display:flex;flex-direction:column;overflow-y:auto}
+  .sidebar::-webkit-scrollbar{width:6px}
+  .sidebar::-webkit-scrollbar-thumb{background:#475569;border-radius:3px}
+  .brand{padding:18px 20px;display:flex;align-items:center;gap:12px;border-bottom:1px solid #334155}
+  .brand-logo{width:42px;height:42px;border-radius:10px;background:linear-gradient(135deg,#8b5cf6,#7c3aed);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:bold;font-size:18px}
+  .brand-text .t1{font-weight:600;color:#fff}
+  .brand-text .t2{font-size:12px;color:#94a3b8}
+  .nav{padding:12px 8px;flex:1}
+  .nav-item{display:flex;align-items:center;gap:10px;padding:9px 14px;border-radius:8px;cursor:pointer;color:#cbd5e1;font-size:14px;margin:2px 0;transition:all .15s}
+  .nav-item:hover{background:#334155;color:#fff}
+  .nav-item.active{background:#7c3aed;color:#fff}
+  .nav-item i{width:18px;text-align:center}
+  .nav-group{position:relative}
+  .nav-group .children{margin-left:14px;border-left:1px solid #334155;display:none}
+  .nav-group.open .children{display:block}
+  .nav-group .caret{margin-left:auto;transition:transform .2s}
+  .nav-group.open .caret{transform:rotate(90deg)}
+  .nav-group .nav-item{padding:7px 14px;font-size:13px;color:#94a3b8}
+  .nav-group .nav-item.active{background:transparent;color:#fff;font-weight:500}
+  .sidebar-foot{padding:14px 16px;border-top:1px solid #334155;font-size:12px;color:#64748b}
+  /* main */
+  .main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+  .topbar{height:60px;background:#fff;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 24px;gap:16px;flex-shrink:0}
+  .topbar .menu-toggle{display:none;font-size:20px;cursor:pointer;color:var(--muted)}
+  .topbar .title{font-size:18px;font-weight:600}
+  .topbar .date{margin-left:auto;color:var(--muted);font-size:14px}
+  .content{flex:1;overflow-y:auto;padding:20px 24px;background:var(--bg)}
+  .content::-webkit-scrollbar{width:8px}
+  .content::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:4px}
+  /* cards */
+  .card{background:#fff;border-radius:12px;padding:18px;box-shadow:0 1px 3px rgba(0,0,0,.04);border:1px solid var(--border)}
+  .card-title{font-size:15px;font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+  /* stat cards */
+  .stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:16px}
+  .stat{background:#fff;border-radius:12px;padding:16px;display:flex;align-items:center;gap:14px;border:1px solid var(--border)}
+  .stat .ic{width:48px;height:48px;border-radius:10px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:20px}
+  .stat .label{color:var(--muted);font-size:13px}
+  .stat .num{font-size:24px;font-weight:700;line-height:1.2}
+  .stat .unit{font-size:12px;color:var(--muted)}
+  /* shortcut grid */
+  .shortcut-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:16px}
+  .shortcut{background:#fff;border:1px solid var(--border);border-radius:12px;padding:18px 8px;text-align:center;cursor:pointer;transition:all .15s}
+  .shortcut:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,.06)}
+  .shortcut i{font-size:24px;color:var(--primary);margin-bottom:6px;display:block}
+  .shortcut span{font-size:13px;color:var(--text)}
+  /* table */
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th{background:#f1f5f9;text-align:left;padding:10px 12px;color:var(--muted);font-weight:500;font-size:13px;border-bottom:1px solid var(--border)}
+  td{padding:10px 12px;border-bottom:1px solid #f1f5f9}
+  tr:hover{background:#f8fafc}
+  .badge{display:inline-block;padding:2px 8px;border-radius:6px;font-size:12px}
+  .badge-blue{background:#ede9fe;color:#7c3aed}
+  .badge-green{background:#d1fae5;color:#059669}
+  .badge-yellow{background:#fef3c7;color:#d97706}
+  .badge-red{background:#fee2e2;color:#dc2626}
+  .badge-gray{background:#f1f5f9;color:#475569}
+  /* buttons */
+  .btn{padding:7px 14px;border-radius:8px;font-size:13px;cursor:pointer;border:none;display:inline-flex;align-items:center;gap:6px;transition:all .15s}
+  .btn-primary{background:var(--primary);color:#fff}
+  .btn-primary:hover{background:#6d28d9}
+  .btn-success{background:var(--success);color:#fff}
+  .btn-warning{background:var(--warning);color:#fff}
+  .btn-danger{background:var(--danger);color:#fff}
+  .btn-outline{background:#fff;border:1px solid var(--border);color:var(--text)}
+  .btn-outline:hover{background:#f8fafc}
+  .btn-sm{padding:4px 10px;font-size:12px}
+  /* forms */
+  .form-group{margin-bottom:12px}
+  .form-group label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
+  .form-control{width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;background:#fff}
+  .form-control:focus{outline:none;border-color:var(--primary-light)}
+  /* modal */
+  .modal-mask{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;z-index:1000;padding:20px}
+  .modal-mask.show{display:flex}
+  .modal{background:#fff;border-radius:12px;width:100%;max-width:560px;max-height:90vh;overflow-y:auto}
+  .modal-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+  .modal-header h3{font-size:16px;font-weight:600;margin:0}
+  .modal-body{padding:20px}
+  .modal-footer{padding:14px 20px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px}
+  /* progress */
+  .progress{height:6px;background:#e2e8f0;border-radius:3px;overflow:hidden}
+  .progress-bar{height:100%;background:linear-gradient(90deg,#7c3aed,#a78bfa);border-radius:3px}
+  /* chart container */
+  .chart-container{position:relative;height:280px;width:100%}
+  .chart-container canvas{position:absolute!important;left:0;top:0;width:100%!important;height:100%!important}
+  /* utility */
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  .text-muted{color:var(--muted)}
+  .flex{display:flex}
+  .flex-between{display:flex;justify-content:space-between;align-items:center}
+  .gap-2{gap:8px}
+  .gap-3{gap:12px}
+  .mb-2{margin-bottom:8px}
+  .mb-3{margin-bottom:12px}
+  .mb-4{margin-bottom:16px}
+  .mt-2{margin-top:8px}
+  .mt-3{margin-top:12px}
+  .mt-4{margin-top:16px}
+  .toolbar{display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
+  .toolbar .search{flex:1;min-width:200px;position:relative}
+  .toolbar .search i{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted)}
+  .toolbar .search input{padding-left:32px}
+  /* step indicator */
+  .steps{display:flex;justify-content:space-between;margin-bottom:24px;position:relative}
+  .steps::before{content:'';position:absolute;top:14px;left:5%;right:5%;height:2px;background:var(--border);z-index:0}
+  .step{position:relative;z-index:1;background:#fff;padding:0 8px;display:flex;flex-direction:column;align-items:center;flex:1}
+  .step .dot{width:30px;height:30px;border-radius:50%;background:#e2e8f0;color:var(--muted);display:flex;align-items:center;justify-content:center;font-weight:600;margin-bottom:4px}
+  .step.active .dot{background:var(--primary);color:#fff}
+  .step.done .dot{background:var(--success);color:#fff}
+  .step .label{font-size:12px;color:var(--muted)}
+  .step.active .label,.step.done .label{color:var(--text);font-weight:500}
+  /* seating */
+  .seating-board{background:#f8fafc;border-radius:12px;padding:24px;position:relative;min-height:500px}
+  .blackboard{background:#1e293b;color:#fff;text-align:center;padding:10px;border-radius:6px;margin:0 auto 20px;width:60%;font-size:14px;letter-spacing:8px}
+  .seat-row{display:flex;justify-content:center;gap:12px;margin-bottom:12px}
+  .seat{width:90px;height:70px;background:#fff;border:1px solid var(--border);border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:all .15s;font-size:13px;position:relative}
+  .seat:hover{transform:scale(1.05);box-shadow:0 4px 12px rgba(0,0,0,.08)}
+  .seat.assigned{background:linear-gradient(135deg,#ede9fe,#e0e7ff);border-color:#93c5fd}
+  .seat .name{font-weight:600;color:var(--text)}
+  .seat .id{font-size:11px;color:var(--muted)}
+  .seat-empty{background:repeating-linear-gradient(45deg,#f8fafc,#f8fafc 6px,#e2e8f0 6px,#e2e8f0 12px);color:#94a3b8}
+  /* timeline */
+  .timeline{position:relative;padding-left:24px}
+  .timeline::before{content:'';position:absolute;left:8px;top:0;bottom:0;width:2px;background:var(--border)}
+  .tl-item{position:relative;padding-bottom:18px}
+  .tl-item::before{content:'';position:absolute;left:-20px;top:6px;width:10px;height:10px;border-radius:50%;background:var(--primary)}
+  .tl-date{font-size:12px;color:var(--muted)}
+  .tl-title{font-weight:500;margin:2px 0}
+  .tl-content{font-size:13px;color:var(--muted)}
+  /* responsive */
+  @media(max-width:1024px){
+    .stat-grid{grid-template-columns:repeat(2,1fr)}
+    .shortcut-grid{grid-template-columns:repeat(3,1fr)}
+    .grid-2,.grid-3{grid-template-columns:1fr}
+  }
+  @media(max-width:768px){
+    .sidebar{position:fixed;left:-240px;top:0;bottom:0;z-index:200;transition:left .2s}
+    .sidebar.open{left:0}
+    .topbar .menu-toggle{display:block}
+    .stat-grid{grid-template-columns:1fr 1fr}
+    .shortcut-grid{grid-template-columns:repeat(2,1fr)}
+  }
+  .avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#a78bfa,#7c3aed);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex-shrink:0}
+  .toast{position:fixed;top:20px;right:20px;background:#1e293b;color:#fff;padding:10px 16px;border-radius:8px;z-index:2000;font-size:13px;box-shadow:0 4px 12px rgba(0,0,0,.15);animation:slideIn .2s}
+  @keyframes slideIn{from{transform:translateX(20px);opacity:0}to{transform:translateX(0);opacity:1}}
+  .empty{text-align:center;padding:40px 20px;color:var(--muted)}
+  .empty i{font-size:32px;margin-bottom:8px;display:block}
+
+  /* 爆款视频网格 */
+  .hotvideo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px}
+  .hot-card{background:#fff;border:1px solid var(--border);border-radius:10px;overflow:hidden;cursor:pointer;transition:all .2s}
+  .hot-card:hover{transform:translateY(-3px);box-shadow:0 6px 16px rgba(0,0,0,.1)}
+  .hot-cover{position:relative;aspect-ratio:16/9;background:#f1f5f9;overflow:hidden}
+  .hot-cover img{width:100%;height:100%;object-fit:cover;display:block}
+  .hot-rank{position:absolute;top:8px;left:8px;background:rgba(0,0,0,.65);color:#fff;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:13px}
+  .hot-rank.top3{background:linear-gradient(135deg,#fbbf24,#f59e0b)}
+  .hot-duration{position:absolute;bottom:6px;right:6px;background:rgba(0,0,0,.7);color:#fff;padding:2px 6px;border-radius:4px;font-size:11px}
+  .hot-info{padding:10px 12px}
+  .hot-title{font-size:14px;font-weight:500;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:6px;min-height:38px}
+  .hot-meta{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);margin-bottom:6px;flex-wrap:wrap}
+  .hot-tag{display:inline-block;padding:1px 6px;background:#ede9fe;color:#7c3aed;border-radius:4px;font-size:11px}
+  .hot-stats{display:flex;gap:12px;font-size:12px;color:var(--muted)}
+  .hot-stats i{margin-right:2px}
+
+  /* 新闻列表 */
+  .news-item{display:flex;gap:12px;padding:14px 12px;border-bottom:1px solid #f1f5f9;cursor:pointer;transition:background .15s;align-items:flex-start}
+  .news-item:hover{background:#f8fafc}
+  .news-item:last-child{border-bottom:none}
+  .news-rank{width:28px;height:28px;flex-shrink:0;border-radius:6px;background:#f1f5f9;color:var(--muted);display:flex;align-items:center;justify-content:center;font-weight:600;font-size:13px}
+  .news-item:nth-child(1) .news-rank{background:linear-gradient(135deg,#fee2e2,#fecaca);color:#dc2626}
+  .news-item:nth-child(2) .news-rank{background:linear-gradient(135deg,#fed7aa,#fdba74);color:#ea580c}
+  .news-item:nth-child(3) .news-rank{background:linear-gradient(135deg,#fef3c7,#fde68a);color:#d97706}
+  .news-body{flex:1;min-width:0}
+  .news-title{font-size:14px;font-weight:500;line-height:1.5;margin-bottom:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .news-desc{font-size:12px;color:var(--muted);line-height:1.5;margin-bottom:6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .news-foot{display:flex;align-items:center;gap:10px;font-size:12px;flex-wrap:wrap}
+  .news-arrow{color:#cbd5e1;align-self:center;flex-shrink:0}
+
+  /* iOS 顶部安全区 */
+  @supports(padding-top:env(safe-area-inset-top)){
+    .topbar{padding-top:env(safe-area-inset-top);height:calc(60px + env(safe-area-inset-top))}
+    body{padding-bottom:env(safe-area-inset-bottom)}
+  }
+
+  /* PWA 独立模式下的微调 */
+  @media (display-mode:standalone){
+    .topbar{padding-top:max(env(safe-area-inset-top),14px)}
+  }
+</style>
+</head>
+<body>
+<div class="layout">
+  <!-- sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <div class="brand-logo">班</div>
+      <div class="brand-text">
+        <div class="t1" id="className">初三(3)班</div>
+        <div class="t2" id="teacherInfo">王老师 · 45人</div>
+      </div>
+    </div>
+    <nav class="nav" id="nav"></nav>
+    <div class="sidebar-foot">
+      <div class="nav-item" data-page="data"><i class="fa-solid fa-database"></i><span>数据管理</span></div>
+      <div class="nav-item" data-page="settings"><i class="fa-solid fa-gear"></i><span>系统设置</span></div>
+    </div>
+  </aside>
+  <!-- main -->
+  <div class="main">
+    <header class="topbar">
+      <i class="fa-solid fa-bars menu-toggle" id="menuToggle"></i>
+      <div class="title" id="pageTitle">仪表盘</div>
+      <div class="date" id="todayDate"></div>
+    </header>
+    <main class="content" id="content"></main>
+  </div>
+</div>
+
+<!-- modal -->
+<div class="modal-mask" id="modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modalTitle">标题</h3>
+      <i class="fa-solid fa-xmark" style="cursor:pointer;color:#94a3b8" onclick="closeModal()"></i>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-footer" id="modalFooter"></div>
+  </div>
+</div>
+
+<script>
+/* ===================== 数据层 ===================== */
+const STORAGE_KEY = 'classmaster_v1';
+const DEFAULT_STATE = {
+  classInfo: { name: '初三(3)班', teacher: '王老师', count: 45 },
+  students: [],
+  exams: [],
+  violations: [],
+  homework: [],
+  leaves: [],
+  works: [],
+  talks: [],
+  seats: {},          // {row:col: studentId}
+  parents: [],
+  activities: [],
+  todos: [],
+  notes: []
+};
+
+let state = loadState();
+
+function loadState(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw) return Object.assign({}, DEFAULT_STATE, JSON.parse(raw));
+  }catch(e){console.warn(e)}
+  return seedData(JSON.parse(JSON.stringify(DEFAULT_STATE)));
+}
+
+function saveState(){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+function uid(){return 'id_'+Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
+
+/* ===================== 预置演示数据 ===================== */
+function seedData(s){
+  s.classInfo = { name: '初三(3)班', teacher: '王老师', count: 45 };
+  const surnames = ['韩','贾','苏','萧','刘','张','程','孙','陈','杨','赵','钱','李','吴','黄','周','林','何','高','马','罗','梁','宋','郑','冯','蒋','沈','韩','杨','朱','秦','尤','许','何','吕','施','张','孔','曹','严','华','金','魏','陶','姜'];
+  const givens = ['雪','勇','娜','超','悦','华','霞','秀兰','志强','晓东','红','建国','磊','婷','静','文博','雅','天宇','浩然','梓涵','诗琪','一鸣','俊','雅琴','博文','欣怡','浩','明','建国','海','燕','亮','俊','晓','悦','萌','佳怡','晨','阳','思源','凌','雨','悦','雯','丽','华'];
+  const genders = ['男','女'];
+  s.students = [];
+  for(let i=1;i<=45;i++){
+    const sn = surnames[(i*7)%surnames.length];
+    const gn = givens[(i*13)%givens.length] + (i%2===0?givens[(i*5)%givens.length]:'');
+    s.students.push({
+      id: 'S'+String(i).padStart(3,'0'),
+      name: sn+gn,
+      gender: i%2===0?'女':'男',
+      studentNo: '202400'+String(i).padStart(2,'0'),
+      idCard: '32010520090'+String(1000+i),
+      birth: '2009-0'+(1+i%9)+'-'+String(1+i%28).padStart(2,'0'),
+      address: '南京市鼓楼区'+['中央路','中山路','北京路','上海路','广州路'][i%5]+(100+i)+'号',
+      parentName: ['李父','王母','张父','刘母','陈父','杨母','黄父','赵母'][i%8],
+      parentPhone: '139'+String(10000000+i).slice(-8),
+      dorm: i%5===0?'寄宿':'走读',
+      position: i%3===0?'班委':'学生',
+      remark: ''
+    });
+  }
+  // 考试
+  const subjects = ['语文','数学','英语','物理','政治','历史'];
+  const examNames = ['第一次月考','期中考试','第二次月考'];
+  s.exams = examNames.map((name,ei)=>({
+    id: 'E'+ei,
+    name,
+    date: ['2024-10-15','2024-11-20','2025-01-10'][ei],
+    subjects,
+    scores: s.students.map(stu=>{
+      const obj = {sid: stu.id, name: stu.name};
+      subjects.forEach(sub=>{
+        obj[sub] = 40 + Math.floor(Math.random()*65) + (ei===0?-5:ei===1?5:0);
+      });
+      obj.total = subjects.reduce((sum,sub)=>sum+obj[sub],0);
+      return obj;
+    })
+  }));
+  // 计算排名
+  s.exams.forEach(ex=>{
+    const sorted = [...ex.scores].sort((a,b)=>b.total-a.total);
+    sorted.forEach((sc,rk)=>{ sc.rank = rk+1; });
+  });
+  // 违纪
+  const vTypes = ['上课说话','迟到','未交作业','课堂睡觉','打架','仪容仪表','其他'];
+  s.violations = [];
+  for(let i=0;i<12;i++){
+    const stu = s.students[Math.floor(Math.random()*45)];
+    s.violations.push({
+      id: 'V'+i,
+      sid: stu.id,
+      name: stu.name,
+      type: vTypes[Math.floor(Math.random()*vTypes.length)],
+      date: '2025-0'+(1+Math.floor(Math.random()*6))+'-'+String(1+Math.floor(Math.random()*28)).padStart(2,'0'),
+      desc: ['影响课堂秩序','多次提醒未改','与同学发生口角','未按时上交','其他情况'][i%5],
+      handler: '王老师'
+    });
+  }
+  // 作业
+  const subs2 = ['语文','数学','英语','物理'];
+  s.homework = [];
+  ['2025-07-25','2025-07-26','2025-07-27','2025-07-28','2025-07-29'].forEach((d,di)=>{
+    subs2.forEach((sub,si)=>{
+      s.homework.push({
+        id: 'H'+di+si,
+        date: d,
+        subject: sub,
+        content: sub + ' 练习册 P' + (10+di) + '-' + (15+di),
+        deadline: d,
+        records: s.students.map(stu=>({sid:stu.id, name:stu.name, status: Math.random()>0.25?'submitted':'unsubmitted'}))
+      });
+    });
+  });
+  // 请假
+  const lTypes = ['病假','事假','公假'];
+  s.leaves = [
+    {id:'L1', sid:'S003', name:s.students[2].name, type:'病假', start:'2025-07-20', end:'2025-07-22', days:3, reason:'感冒发烧', status:'approved', approver:'王老师'},
+    {id:'L2', sid:'S015', name:s.students[14].name, type:'事假', start:'2025-07-25', end:'2025-07-25', days:1, reason:'家中事务', status:'approved', approver:'王老师'},
+    {id:'L3', sid:'S028', name:s.students[27].name, type:'公假', start:'2025-07-28', end:'2025-07-29', days:2, reason:'代表学校参加比赛', status:'pending', approver:''},
+  ];
+  // 工作留痕
+  s.works = [
+    {id:'W1', date:'2025-07-25', type:'班会', title:'暑期安全教育主题班会', content:'强调防溺水、交通安全、食品安全等注意事项。', tag:'重要'},
+    {id:'W2', date:'2025-07-26', type:'家访', title:'张华同学家访', content:'到学生家中了解学习生活情况,与家长沟通教育方法。', tag:'一般'},
+    {id:'W3', date:'2025-07-28', type:'谈话', title:'与韩雪同学谈心', content:'针对近期成绩下滑进行谈话,了解其困难,鼓励其积极面对。', tag:'重要'},
+    {id:'W4', date:'2025-07-29', type:'其他', title:'班级卫生检查', content:'完成本周班级卫生检查,发现部分问题已整改。', tag:'一般'},
+  ];
+  // 谈话记录
+  s.talks = [
+    {id:'T1', date:'2025-07-25', sid:'S001', name:s.students[0].name, topic:'学习状态', content:'学生近期上课注意力不集中,与家长沟通后了解到作息不规律。', mood:'积极', nextFollow:'2025-08-05'},
+    {id:'T2', date:'2025-07-28', sid:'S003', name:s.students[2].name, topic:'成绩波动', content:'针对第二次月考成绩下滑进行谈话,制定下阶段学习计划。', mood:'配合', nextFollow:'2025-08-10'},
+  ];
+  // 家校沟通
+  s.parents = [
+    {id:'P1', date:'2025-07-20', sid:'S001', name:s.students[0].name, parentName:'韩父', type:'电话', topic:'学习情况反馈', content:'与家长沟通学生近期表现,家长表示会配合学校加强督促。'},
+    {id:'P2', date:'2025-07-22', sid:'S010', name:s.students[9].name, parentName:'张母', type:'面谈', topic:'升学规划', content:'与家长讨论中考目标,共同制定复习计划。'},
+    {id:'P3', date:'2025-07-26', sid:'S015', name:s.students[14].name, parentName:'陈父', type:'家长会', topic:'期中家长会', content:'汇报班级整体情况,表彰优秀学生。'},
+  ];
+  // 班级活动
+  s.activities = [
+    {id:'A1', date:'2025-07-15', type:'主题班会', name:'诚信教育主题班会', participants:45, content:'通过案例分享引导学生诚信做人。', result:'效果良好'},
+    {id:'A2', date:'2025-07-18', type:'课外活动', name:'校园文化节', participants:45, content:'组织同学参加校园文化节文艺汇演。', result:'获得二等奖'},
+    {id:'A3', date:'2025-07-22', type:'获奖', name:'数学竞赛获奖', participants:5, content:'韩雪等5名同学在区数学竞赛中获奖。', result:'一等奖2名,三等奖3名'},
+  ];
+  // 待办
+  s.todos = [
+    {id:'TD1', title:'准备家长会PPT', due:'2025-08-02', priority:'high', done:false},
+    {id:'TD2', title:'联系张华家长', due:'2025-07-31', priority:'medium', done:false},
+    {id:'TD3', title:'整理本学期成绩单', due:'2025-08-05', priority:'low', done:false},
+    {id:'TD4', title:'完成学生评语', due:'2025-08-10', priority:'high', done:false},
+  ];
+  // 笔记
+  s.notes = [
+    {id:'N1', date:'2025-07-25', title:'本周工作重点', content:'1. 抓好期末复习\n2. 关注学生心理状态\n3. 做好家校沟通'},
+  ];
+  // 排座位(7列6行)
+  s.seats = {};
+  for(let r=0;r<6;r++){
+    for(let c=0;c<7;c++){
+      const idx = r*7+c;
+      if(idx < s.students.length){
+        s.seats[r+'_'+c] = s.students[idx].id;
+      }
+    }
+  }
+  return s;
+}
+
+/* ===================== 路由 ===================== */
+const PAGES = [
+  {key:'dashboard', name:'仪表盘', icon:'fa-gauge-high', render:renderDashboard},
+  {key:'students', name:'学生管理', icon:'fa-user-graduate', group:true, children:[
+    {key:'students_list', name:'学生花名册', render:renderStudentsList},
+    {key:'students_profile', name:'学生个人档案', render:renderStudentsProfile},
+    {key:'students_import', name:'信息导入导出', render:renderStudentsImport},
+    {key:'students_report', name:'个人报告导出', render:renderStudentsReport},
+  ]},
+  {key:'score', name:'成绩分析', icon:'fa-chart-line', group:true, children:[
+    {key:'score_exam', name:'考试列表', render:renderScoreExamList},
+    {key:'score_input', name:'成绩录入', render:renderScoreInput},
+    {key:'score_single', name:'单次分析', render:renderScoreSingle},
+    {key:'score_trend', name:'个人趋势', render:renderScoreTrend},
+    {key:'score_progress', name:'进退步分析', render:renderScoreProgress},
+    {key:'score_rank', name:'班级排名总表', render:renderScoreRank},
+    {key:'score_subjects', name:'科目设置', render:renderScoreSubjects},
+  ]},
+  {key:'violation', name:'违纪统计', icon:'fa-triangle-exclamation', render:renderViolation},
+  {key:'homework', name:'作业管理', icon:'fa-clipboard-list', render:renderHomework},
+  {key:'leave', name:'请假管理', icon:'fa-file-signature', render:renderLeave},
+  {key:'work', name:'工作留痕', icon:'fa-briefcase', render:renderWork},
+  {key:'talk', name:'谈话记录', icon:'fa-comments', render:renderTalk},
+  {key:'seat', name:'排座位', icon:'fa-chair', render:renderSeat},
+  {key:'parent', name:'家校沟通', icon:'fa-house-chimney', render:renderParent},
+  {key:'activity', name:'班级活动', icon:'fa-flag', render:renderActivity},
+  {key:'todo', name:'待办备忘录', icon:'fa-list-check', render:renderTodo},
+  {key:'hotvideo', name:'爆款视频', icon:'fa-fire', render:renderHotVideo},
+  {key:'news', name:'重要新闻', icon:'fa-newspaper', render:renderNews},
+  {key:'data', name:'数据管理', icon:'fa-database', render:renderData},
+  {key:'settings', name:'系统设置', icon:'fa-gear', render:renderSettings},
+];
+
+let currentPage = 'dashboard';
+let currentSubPage = null;
+
+function buildNav(){
+  const nav = document.getElementById('nav');
+  nav.innerHTML = PAGES.filter(p=>!['data','settings'].includes(p.key)).map(p=>{
+    if(p.group){
+      return `<div class="nav-group" data-group="${p.key}">
+        <div class="nav-item" onclick="toggleGroup('${p.key}')">
+          <i class="fa-solid ${p.icon}"></i><span>${p.name}</span>
+          <i class="fa-solid fa-chevron-right caret"></i>
+        </div>
+        <div class="children">
+          ${p.children.map(c=>`<div class="nav-item" data-page="${c.key}"><span>${c.name}</span></div>`).join('')}
+        </div>
+      </div>`;
+    }
+    return `<div class="nav-item" data-page="${p.key}"><i class="fa-solid ${p.icon}"></i><span>${p.name}</span></div>`;
+  }).join('');
+  nav.querySelectorAll('.nav-item[data-page]').forEach(el=>{
+    el.onclick = ()=>goPage(el.dataset.page);
+  });
+}
+
+function toggleGroup(key){
+  const el = document.querySelector(`[data-group="${key}"]`);
+  el.classList.toggle('open');
+}
+
+function goPage(pageKey){
+  currentPage = pageKey;
+  currentSubPage = pageKey;
+  // 关闭所有 group 高亮
+  document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.nav-group').forEach(el=>el.classList.remove('open'));
+  // 找页面
+  let page = PAGES.find(p=>p.key===pageKey);
+  let parent = null;
+  if(!page){
+    for(const p of PAGES){
+      if(p.children){
+        const c = p.children.find(c=>c.key===pageKey);
+        if(c){page = c; parent = p; break;}
+      }
+    }
+  }
+  if(!page) return;
+  // 高亮
+  if(parent){
+    document.querySelector(`[data-group="${parent.key}"]`).classList.add('open');
+    document.querySelector(`[data-group="${parent.key}"] .nav-item[data-page="${page.key}"]`).classList.add('active');
+  }else{
+    const item = document.querySelector(`.sidebar > .nav > .nav-item[data-page="${page.key}"]`);
+    if(item) item.classList.add('active');
+    const foot = document.querySelector(`.sidebar-foot .nav-item[data-page="${page.key}"]`);
+    if(foot) foot.classList.add('active');
+  }
+  document.getElementById('pageTitle').textContent = page.name;
+  page.render();
+  // 移动端关闭sidebar
+  document.getElementById('sidebar').classList.remove('open');
+}
+
+function findPage(key){
+  for(const p of PAGES){
+    if(p.key===key) return p;
+    if(p.children){
+      const c = p.children.find(c=>c.key===key);
+      if(c) return c;
+    }
+  }
+  return null;
+}
+
+/* ===================== 工具函数 ===================== */
+function showToast(msg){
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(()=>t.remove(), 2000);
+}
+
+function openModal(title, body, footer){
+  document.getElementById('modalTitle').textContent = title;
+  document.getElementById('modalBody').innerHTML = body;
+  document.getElementById('modalFooter').innerHTML = footer || '<button class="btn btn-outline" onclick="closeModal()">关闭</button>';
+  document.getElementById('modal').classList.add('show');
+}
+function closeModal(){document.getElementById('modal').classList.remove('show')}
+
+function today(){
+  const d = new Date();
+  return `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日 星期${'日一二三四五六'[d.getDay()]}`;
+}
+
+function getStudent(id){
+  return state.students.find(s=>s.id===id);
+}
+
+function exportExcel(data, sheetName, fileName){
+  const ws = XLSX.utils.aoa_to_sheet(data);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, sheetName);
+  XLSX.writeFile(wb, fileName);
+}
+
+function exportWord(title, html, fileName){
+  const content = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word'>
+  <head><meta charset='utf-8'><title>${title}</title>
+  <style>body{font-family:'Microsoft YaHei',sans-serif;padding:20px;font-size:12pt}h1{text-align:center;font-size:18pt}h2{font-size:14pt;color:#333}table{width:100%;border-collapse:collapse;margin:10px 0}th,td{border:1px solid #999;padding:6px 10px;text-align:left}th{background:#f0f0f0}</style>
+  </head><body>${html}</body></html>`;
+  const blob = new Blob(['\ufeff',content],{type:'application/msword'});
+  saveAs(blob, fileName);
+}
+
+/* ===================== 页面渲染 ===================== */
+function renderDashboard(){
+  const total = state.students.length;
+  const males = state.students.filter(s=>s.gender==='男').length;
+  const todayLeaves = state.leaves.filter(l=>l.start<=todayStr()&&l.end>=todayStr()&&l.status==='approved').length;
+  const unfinished = state.homework.reduce((sum,h)=>sum+h.records.filter(r=>r.status==='unsubmitted').length, 0);
+  const weekVios = state.violations.filter(v=>isThisWeek(v.date)).length;
+  const monthWorks = state.works.filter(w=>w.date.startsWith(todayStr().slice(0,7))).length;
+  const pending = state.todos.filter(t=>!t.done).length;
+
+  // 最近考试
+  const lastExam = state.exams[state.exams.length-1];
+  const subjectAvgs = {};
+  if(lastExam){
+    lastExam.subjects.forEach(sub=>{
+      const sum = lastExam.scores.reduce((s,sc)=>s+sc[sub],0);
+      subjectAvgs[sub] = (sum/lastExam.scores.length).toFixed(1);
+    });
+  }
+
+  document.getElementById('content').innerHTML = `
+    <div class="shortcut-grid">
+      <div class="shortcut" onclick="goPage('leave')"><i class="fa-solid fa-file-signature"></i><span>记请假</span></div>
+      <div class="shortcut" onclick="goPage('homework')"><i class="fa-solid fa-clipboard-list"></i><span>记作业</span></div>
+      <div class="shortcut" onclick="goPage('violation')"><i class="fa-solid fa-triangle-exclamation"></i><span>记违纪</span></div>
+      <div class="shortcut" onclick="goPage('work')"><i class="fa-solid fa-briefcase"></i><span>记工作</span></div>
+      <div class="shortcut" onclick="goPage('students_list')"><i class="fa-solid fa-user-graduate"></i><span>学生管理</span></div>
+    </div>
+    <div class="stat-grid">
+      <div class="stat">
+        <div class="ic" style="background:#8b5cf6"><i class="fa-solid fa-users"></i></div>
+        <div><div class="label">班级总人数</div><div><span class="num">${total}</span></div><div class="unit">男${males} · 女${total-males}</div></div>
+      </div>
+      <div class="stat">
+        <div class="ic" style="background:#10b981"><i class="fa-solid fa-file-circle-check"></i></div>
+        <div><div class="label">今日请假</div><div><span class="num">${todayLeaves}</span></div><div class="unit">人</div></div>
+      </div>
+      <div class="stat">
+        <div class="ic" style="background:#ec4899"><i class="fa-solid fa-clipboard"></i></div>
+        <div><div class="label">作业未交</div><div><span class="num">${unfinished}</span></div><div class="unit">人次</div></div>
+      </div>
+      <div class="stat">
+        <div class="ic" style="background:#f59e0b"><i class="fa-solid fa-triangle-exclamation"></i></div>
+        <div><div class="label">本周违纪</div><div><span class="num">${weekVios}</span></div><div class="unit">次</div></div>
+      </div>
+      <div class="stat">
+        <div class="ic" style="background:#8b5cf6"><i class="fa-solid fa-briefcase"></i></div>
+        <div><div class="label">本月工作留痕</div><div><span class="num">${monthWorks}</span></div><div class="unit">条</div></div>
+      </div>
+      <div class="stat">
+        <div class="ic" style="background:#06b6d4"><i class="fa-solid fa-list-check"></i></div>
+        <div><div class="label">待办事项</div><div><span class="num">${pending}</span></div><div class="unit">项待完成</div></div>
+      </div>
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title"><i class="fa-solid fa-chart-column" style="color:#8b5cf6"></i>最近考试各科平均分</div>
+        <div class="chart-container"><canvas id="dashChart"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title"><i class="fa-solid fa-trophy" style="color:#f59e0b"></i>考试前三名</div>
+        <div>${lastExam?renderTopThree(lastExam):'<div class="empty">暂无考试数据</div>'}</div>
+      </div>
+    </div>
+    <div class="card mt-4">
+      <div class="card-title"><i class="fa-solid fa-clock-rotate-left" style="color:#06b6d4"></i>最近活动</div>
+      <div class="timeline">
+        ${state.works.slice(0,3).map(w=>`
+          <div class="tl-item">
+            <div class="tl-date">${w.date} · ${w.type}</div>
+            <div class="tl-title">${w.title}</div>
+            <div class="tl-content">${w.content}</div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+
+  if(lastExam){
+    requestAnimationFrame(()=>{
+    new Chart(document.getElementById('dashChart'), {
+      type: 'bar',
+      data: {
+        labels: Object.keys(subjectAvgs),
+        datasets: [{
+          label: '平均分',
+          data: Object.values(subjectAvgs),
+          backgroundColor: ['#8b5cf6','#8b5cf6','#06b6d4','#10b981','#ec4899','#f59e0b']
+        }]
+      },
+      options: {responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,max:100}}}
+    });
+    });
+  }
+}
+
+function renderTopThree(exam){
+  const top = [...exam.scores].sort((a,b)=>b.total-a.total).slice(0,3);
+  const medals = ['🥇','🥈','🥉'];
+  const colors = ['#fbbf24','#9ca3af','#d97706'];
+  return `<table><thead><tr><th>名次</th><th>姓名</th><th>总分</th></tr></thead><tbody>
+    ${top.map((s,i)=>`<tr><td><span style="color:${colors[i]};font-weight:600">${medals[i]} 第${i+1}名</span></td><td>${s.name}</td><td><strong>${s.total}</strong></td></tr>`).join('')}
+  </tbody></table>`;
+}
+
+function todayStr(){return new Date().toISOString().slice(0,10)}
+function isThisWeek(d){
+  const dt = new Date(d);
+  const now = new Date();
+  const start = new Date(now);
+  start.setDate(now.getDate()-now.getDay());
+  return dt >= start && dt <= now;
+}
+
+/* ---- 学生管理 ---- */
+function renderStudentsList(){
+  document.getElementById('content').innerHTML = `
+    <div class="card">
+      <div class="toolbar">
+        <div class="search"><i class="fa-solid fa-magnifying-glass"></i><input class="form-control" placeholder="搜索姓名/学号" id="stuSearch" oninput="filterStudentTable()"></div>
+        <button class="btn btn-primary" onclick="openStuForm()"><i class="fa-solid fa-plus"></i>新增学生</button>
+        <button class="btn btn-outline" onclick="document.getElementById('stuBatchFile').click()"><i class="fa-solid fa-file-import"></i>批量导入 Excel</button>
+        <input type="file" id="stuBatchFile" accept=".xlsx,.xls" style="display:none" onchange="batchImportStu()">
+        <button class="btn btn-success" onclick="exportStuExcel()"><i class="fa-solid fa-file-excel"></i>导出 Excel</button>
+        <button class="btn btn-danger" id="btnBatchDel" onclick="batchDelStu()" style="display:none"><i class="fa-solid fa-trash-can"></i>批量删除 (<span id="batchDelCount">0</span>)</button>
+      </div>
+      <div style="overflow-x:auto"><table id="stuTable">
+        <thead><tr><th style="width:40px"><input type="checkbox" id="checkAll" onchange="toggleAllStu(this.checked)" title="全选"></th><th>学号</th><th>姓名</th><th>性别</th><th>出生日期</th><th>家长姓名</th><th>家长电话</th><th>住宿</th><th>职务</th><th>操作</th></tr></thead>
+        <tbody id="stuTbody">${state.students.map(s=>stuRow(s)).join('')}</tbody>
+      </table></div>
+      <div class="text-muted mt-3" style="font-size:12px">共 <strong>${state.students.length}</strong> 名学生 · 点击复选框可多选后批量删除 · <a href="#" onclick="downloadStuTemplate()">下载导入模板</a></div>
+    </div>
+  `;
+  updateBatchDelBtn();
+}
+function stuRow(s){
+  return `<tr data-sid="${s.id}">
+    <td><input type="checkbox" class="stu-check" data-sid="${s.id}" onchange="updateBatchDelBtn()"></td>
+    <td>${s.studentNo}</td>
+    <td><div class="flex gap-2" style="align-items:center"><div class="avatar">${s.name[0]}</div><span>${s.name}</span></div></td>
+    <td>${s.gender==='男'?'<span class="badge badge-blue">男</span>':'<span class="badge badge-pink" style="background:#fce7f3;color:#be185d">女</span>'}</td>
+    <td>${s.birth}</td>
+    <td>${s.parentName}</td>
+    <td>${s.parentPhone}</td>
+    <td>${s.dorm}</td>
+    <td>${s.position}</td>
+    <td>
+      <button class="btn btn-outline btn-sm" onclick="viewStu('${s.id}')">查看</button>
+      <button class="btn btn-outline btn-sm" onclick="openStuForm('${s.id}')">编辑</button>
+      <button class="btn btn-danger btn-sm" onclick="delStu('${s.id}')">删除</button>
+    </td>
+  </tr>`;
+}
+function toggleAllStu(checked){
+  document.querySelectorAll('.stu-check').forEach(cb=>{cb.checked=checked});
+  updateBatchDelBtn();
+}
+function getCheckedSids(){
+  const sids = [];
+  document.querySelectorAll('.stu-check:checked').forEach(cb=>sids.push(cb.dataset.sid));
+  return sids;
+}
+function updateBatchDelBtn(){
+  const count = getCheckedSids().length;
+  const btn = document.getElementById('btnBatchDel');
+  const cnt = document.getElementById('batchDelCount');
+  if(btn){
+    btn.style.display = count>0?'':'none';
+    if(cnt) cnt.textContent = count;
+  }
+}
+function batchDelStu(){
+  const sids = getCheckedSids();
+  if(sids.length===0){showToast('请先勾选要删除的学生');return}
+  if(!confirm(`确定删除选中的 ${sids.length} 名学生吗？此操作不可恢复！`))return;
+  state.students = state.students.filter(s=>!sids.includes(s.id));
+  saveState();renderStudentsList();showToast(`已删除 ${sids.length} 名学生`);
+}
+function batchImportStu(){
+  const file = document.getElementById('stuBatchFile').files[0];
+  if(!file)return;
+  const reader = new FileReader();
+  reader.onload = e=>{
+    try{
+      const wb = XLSX.read(e.target.result, {type:'binary'});
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws);
+      let count = 0;
+      const newStudents = [];
+      rows.forEach(r=>{
+        if(!r['姓名'])return;
+        const id = 'S'+String(state.students.length+newStudents.length+1).padStart(3,'0');
+        newStudents.push({
+          id,
+          studentNo: String(r['学号']||''),
+          name: String(r['姓名']),
+          gender: r['性别']||'男',
+          birth: r['出生日期']||'',
+          idCard: String(r['身份证号']||''),
+          parentName: String(r['家长姓名']||''),
+          parentPhone: String(r['家长电话']||''),
+          address: String(r['家庭住址']||''),
+          dorm: r['住宿']||'走读',
+          position: r['职务']||'学生',
+          remark: ''
+        });
+        count++;
+      });
+      if(count===0){showToast('未识别到有效数据,请检查 Excel 格式');return}
+      state.students.push(...newStudents);
+      saveState();renderStudentsList();showToast(`成功导入 ${count} 名学生`);
+    }catch(err){showToast('导入失败,请检查文件格式')}
+  };
+  reader.readAsBinaryString(file);
+  document.getElementById('stuBatchFile').value = '';
+}
+function filterStudentTable(){
+  const q = document.getElementById('stuSearch').value.trim().toLowerCase();
+  document.querySelectorAll('#stuTbody tr').forEach(tr=>{
+    const t = tr.textContent.toLowerCase();
+    tr.style.display = t.includes(q)?'':'none';
+  });
+}
+function openStuForm(sid){
+  const s = sid?getStudent(sid):{id:'',studentNo:'',name:'',gender:'男',birth:'',address:'',parentName:'',parentPhone:'',dorm:'走读',position:'学生',remark:'',idCard:''};
+  const body = `
+    <div class="grid-2">
+      <div class="form-group"><label>学号</label><input class="form-control" id="f_stuNo" value="${s.studentNo}"></div>
+      <div class="form-group"><label>姓名 *</label><input class="form-control" id="f_name" value="${s.name}"></div>
+      <div class="form-group"><label>性别</label><select class="form-control" id="f_gender"><option ${s.gender==='男'?'selected':''}>男</option><option ${s.gender==='女'?'selected':''}>女</option></select></div>
+      <div class="form-group"><label>身份证号</label><input class="form-control" id="f_idCard" value="${s.idCard}"></div>
+      <div class="form-group"><label>出生日期</label><input class="form-control" id="f_birth" type="date" value="${s.birth}"></div>
+      <div class="form-group"><label>住宿</label><select class="form-control" id="f_dorm"><option ${s.dorm==='走读'?'selected':''}>走读</option><option ${s.dorm==='寄宿'?'selected':''}>寄宿</option></select></div>
+      <div class="form-group"><label>家长姓名</label><input class="form-control" id="f_pname" value="${s.parentName}"></div>
+      <div class="form-group"><label>家长电话</label><input class="form-control" id="f_pphone" value="${s.parentPhone}"></div>
+      <div class="form-group" style="grid-column:span 2"><label>家庭住址</label><input class="form-control" id="f_addr" value="${s.address}"></div>
+      <div class="form-group"><label>职务</label><input class="form-control" id="f_pos" value="${s.position}"></div>
+      <div class="form-group"><label>备注</label><input class="form-control" id="f_remark" value="${s.remark||''}"></div>
+    </div>
+  `;
+  const footer = `<button class="btn btn-outline" onclick="closeModal()">取消</button>
+    <button class="btn btn-primary" onclick="saveStu('${sid||''}')">保存</button>`;
+  openModal(sid?'编辑学生':'新增学生', body, footer);
+}
+function saveStu(sid){
+  const data = {
+    studentNo: document.getElementById('f_stuNo').value,
+    name: document.getElementById('f_name').value,
+    gender: document.getElementById('f_gender').value,
+    idCard: document.getElementById('f_idCard').value,
+    birth: document.getElementById('f_birth').value,
+    dorm: document.getElementById('f_dorm').value,
+    parentName: document.getElementById('f_pname').value,
+    parentPhone: document.getElementById('f_pphone').value,
+    address: document.getElementById('f_addr').value,
+    position: document.getElementById('f_pos').value,
+    remark: document.getElementById('f_remark').value,
+  };
+  if(!data.name){showToast('请输入姓名');return}
+  if(sid){
+    Object.assign(getStudent(sid), data);
+  }else{
+    data.id = 'S'+String(state.students.length+1).padStart(3,'0');
+    state.students.push(data);
+  }
+  saveState();renderStudentsList();closeModal();showToast('保存成功');
+}
+function delStu(sid){
+  if(!confirm('确定删除该学生?'))return;
+  state.students = state.students.filter(s=>s.id!==sid);
+  saveState();renderStudentsList();showToast('已删除');
+}
+function viewStu(sid){
+  const s = getStudent(sid);
+  // 累计成绩
+  const exSummary = state.exams.map(ex=>{
+    const sc = ex.scores.find(x=>x.sid===sid);
+    return sc?`<tr><td>${ex.name}</td><td>${sc.total}</td><td>第${sc.rank}名</td></tr>`:'';
+  }).join('');
+  const vioCount = state.violations.filter(v=>v.sid===sid).length;
+  const body = `
+    <div class="flex gap-3" style="align-items:center;margin-bottom:16px">
+      <div class="avatar" style="width:60px;height:60px;font-size:20px">${s.name[0]}</div>
+      <div>
+        <h3 style="margin:0">${s.name} <span class="badge badge-blue">${s.gender}</span></h3>
+        <div class="text-muted">学号: ${s.studentNo} · ${s.position}</div>
+      </div>
+    </div>
+    <div class="grid-2">
+      <div><div class="text-muted">出生日期</div><div>${s.birth}</div></div>
+      <div><div class="text-muted">住宿情况</div><div>${s.dorm}</div></div>
+      <div><div class="text-muted">家长姓名</div><div>${s.parentName}</div></div>
+      <div><div class="text-muted">家长电话</div><div>${s.parentPhone}</div></div>
+      <div style="grid-column:span 2"><div class="text-muted">家庭住址</div><div>${s.address}</div></div>
+    </div>
+    <h4 style="margin-top:16px">历史成绩</h4>
+    <table><thead><tr><th>考试</th><th>总分</th><th>排名</th></tr></thead><tbody>${exSummary||'<tr><td colspan="3" class="text-muted" style="text-align:center">暂无数据</td></tr>'}</tbody></table>
+    <h4 style="margin-top:16px">违纪统计</h4>
+    <div>共 <strong>${vioCount}</strong> 次违纪</div>
+  `;
+  openModal('学生档案 - '+s.name, body, '<button class="btn btn-outline" onclick="closeModal()">关闭</button>');
+}
+function exportStuExcel(){
+  const data = [['学号','姓名','性别','出生日期','身份证号','家长姓名','家长电话','家庭住址','住宿','职务','备注']];
+  state.students.forEach(s=>{
+    data.push([s.studentNo,s.name,s.gender,s.birth,s.idCard,s.parentName,s.parentPhone,s.address,s.dorm,s.position,s.remark||'']);
+  });
+  exportExcel(data, '学生花名册', state.classInfo.name+'-学生花名册.xlsx');
+  showToast('已导出');
+}
+
+function renderStudentsProfile(){
+  document.getElementById('content').innerHTML = `
+    <div class="card">
+      <div class="card-title">学生个人档案管理</div>
+      <div class="text-muted mb-3">所有学生档案汇总,可按学号、姓名搜索并查看完整档案</div>
+      <div class="toolbar">
+        <div class="search"><i class="fa-solid fa-magnifying-glass"></i><input class="form-control" id="profileSearch" oninput="filterProfile()" placeholder="搜索学生"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px" id="profileGrid">
+        ${state.students.map(s=>`
+          <div class="card" style="cursor:pointer;padding:14px" data-name="${s.name}${s.studentNo}" onclick="viewStu('${s.id}')">
+            <div class="flex gap-2" style="align-items:center">
+              <div class="avatar" style="width:40px;height:40px">${s.name[0]}</div>
+              <div>
+                <div style="font-weight:600">${s.name}</div>
+                <div class="text-muted" style="font-size:12px">${s.studentNo}</div>
+              </div>
+            </div>
+            <div class="text-muted mt-2" style="font-size:12px">
+              <i class="fa-solid fa-phone"></i> ${s.parentPhone}<br>
+              <i class="fa-solid fa-house"></i> ${s.dorm}
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
+function filterProfile(){
+  const q = document.getElementById('profileSearch').value.trim().toLowerCase();
+  document.querySelectorAll('#profileGrid > div').forEach(el=>{
+    el.style.display = el.dataset.name.toLowerCase().includes(q)?'':'none';
+  });
+}
+
+function renderStudentsImport(){
+  document.getElementById('content').innerHTML = `
+    <div class="card">
+      <div class="card-title"><i class="fa-solid fa-file-import" style="color:#7c3aed"></i>学生信息导入导出</div>
+      <div class="grid-2">
+        <div class="card" style="background:#f8fafc">
+          <h4 style="margin:0 0 8px"><i class="fa-solid fa-download" style="color:#6d28d9"></i> 导出学生名册</h4>
+          <p class="text-muted" style="font-size:13px">将所有学生信息导出为 Excel 文件,包含姓名、性别、学号、家长电话等信息。</p>
+          <button class="btn btn-primary mt-2" onclick="exportStuExcel()"><i class="fa-solid fa-file-excel"></i>导出 Excel</button>
+        </div>
+        <div class="card" style="background:#f8fafc">
+          <h4 style="margin:0 0 8px"><i class="fa-solid fa-file-excel" style="color:#10b981"></i> 下载导入模板</h4>
+          <p class="text-muted" style="font-size:13px">下载标准模板,填写后可批量导入学生信息。</p>
+          <button class="btn btn-success mt-2" onclick="downloadStuTemplate()"><i class="fa-solid fa-download"></i>下载模板</button>
+        </div>
+      </div>
+      <div class="card mt-4" style="background:#f8fafc">
+        <div style="text-align:center;padding:20px">
+          <i class="fa-solid fa-cloud-arrow-up" style="font-size:48px;color:#94a3b8"></i>
+          <h3 style="margin:12px 0 4px">导入学生信息</h3>
+          <p class="text-muted">选择填写好的 Excel 文件,批量导入学生信息</p>
+          <input type="file" id="stuFile" accept=".xlsx,.xls" style="display:none" onchange="importStuExcel()">
+          <button class="btn btn-primary mt-2" onclick="document.getElementById('stuFile').click()"><i class="fa-solid fa-upload"></i>选择文件导入</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+function downloadStuTemplate(){
+  const data = [['学号','姓名','性别','出生日期','身份证号','家长姓名','家长电话','家庭住址','住宿','职务']];
+  exportExcel(data, '学生导入模板', '学生导入模板.xlsx');
+  showToast('已下载');
+}
+function importStuExcel(){
+  const file = document.getElementById('stuFile').files[0];
+  if(!file)return;
+  const reader = new FileReader();
+  reader.onload = e=>{
+    const wb = XLSX.read(e.target.result, {type:'binary'});
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(ws);
+    let count = 0;
+    rows.forEach(r=>{
+      if(!r['姓名'])return;
+      const id = 'S'+String(state.students.length+count+1).padStart(3,'0');
+      state.students.push({
+        id,
+        studentNo: r['学号']||'',
+        name: r['姓名'],
+        gender: r['性别']||'男',
+        birth: r['出生日期']||'',
+        idCard: r['身份证号']||'',
+        parentName: r['家长姓名']||'',
+        parentPhone: String(r['家长电话']||''),
+        address: r['家庭住址']||'',
+        dorm: r['住宿']||'走读',
+        position: r['职务']||'学生',
+        remark: ''
+      });
+      count++;
+    });
+    saveState();showToast(`成功导入 ${count} 名学生`);
+    document.getElementById('stuFile').value = '';
+  };
+  reader.readAsBinaryString(file);
+}
+
+function renderStudentsReport(){
+  document.getElementById('content').innerHTML = `
+    <div class="card">
+      <div class="card-title"><i class="fa-solid fa-file-word" style="color:#7c3aed"></i>个人报告导出</div>
+      <div class="text-muted mb-3">选择学生,导出包含学生基本信息、历次成绩、违纪记录等内容的综合报告</div>
+      <div class="form-group">
+        <label>选择学生</label>
+        <select class="form-control" id="reportStuSel">
+          ${state.students.map(s=>`<option value="${s.id}">${s.name} (${s.studentNo})</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group">
+        <label>报告标题</label>
+        <input class="form-control" id="reportTitle" value="学生综合素质评价报告">
+      </div>
+      <div class="form-group">
+        <label>教师评语</label>
+        <textarea class="form-control" id="reportComment" rows="6" placeholder="请输入对该学生的综合评价...">该生思想品德端正,学习态度认真,团结同学,尊敬师长。在本学期学习中表现良好,望继续努力,争取更大进步。</textarea>
+      </div>
+      <button class="btn btn-primary" onclick="exportStuReport()"><i class="fa-solid fa-download"></i>导出 Word 报告</button>
+    </div>
+  `;
+}
+function exportStuReport(){
+  const sid = document.getElementById('reportStuSel').value;
+  const s = getStudent(sid);
+  const title = document.getElementById('reportTitle').value;
+  const comment = document.getElementById('reportComment').value;
+  const exRows = state.exams.map(ex=>{
+    const sc = ex.scores.find(x=>x.sid===sid);
+    if(!sc) return '';
+    return `<tr><td>${ex.name}</td><td>${ex.date}</td>${ex.subjects.map(sub=>`<td>${sc[sub]}</td>`).join('')}<td><strong>${sc.total}</strong></td><td>第${sc.rank}名</td></tr>`;
+  }).join('');
+  const vios = state.violations.filter(v=>v.sid===sid);
+  const html = `
+    <h1>${title}</h1>
+    <h2>一、基本信息</h2>
+    <table>
+      <tr><th>姓名</th><td>${s.name}</td><th>性别</th><td>${s.gender}</td></tr>
+      <tr><th>学号</th><td>${s.studentNo}</td><th>出生日期</th><td>${s.birth}</td></tr>
+      <tr><th>家长姓名</th><td>${s.parentName}</td><th>联系电话</th><td>${s.parentPhone}</td></tr>
+      <tr><th>家庭住址</th><td colspan="3">${s.address}</td></tr>
+      <tr><th>职务</th><td>${s.position}</td><th>住宿</th><td>${s.dorm}</td></tr>
+    </table>
+    <h2>二、考试成绩</h2>
+    <table>
+      <tr><th>考试名称</th><th>日期</th>${state.exams[0]?state.exams[0].subjects.map(sub=>`<th>${sub}</th>`).join(''):''}<th>总分</th><th>排名</th></tr>
+      ${exRows}
+    </table>
+    <h2>三、违纪记录</h2>
+    ${vios.length?`<table><tr><th>日期</th><th>类型</th><th>说明</th><th>处理人</th></tr>${vios.map(v=>`<tr><td>${v.date}</td><td>${v.type}</td><td>${v.desc}</td><td>${v.handler}</td></tr>`).join('')}</table>`:'<p>无违纪记录</p>'}
+    <h2>四、教师评语</h2>
+    <p>${comment}</p>
+    <p style="text-align:right;margin-top:30px">班主任: ${state.classInfo.teacher}</p>
+    <p style="text-align:right">${today()}</p>
+  `;
+  exportWord(title, html, s.name+'-个人报告.doc');
+  showToast('已导出 Word 报告');
+}
+
+/* ---- 成绩分析 ---- */
+function renderScoreExamList(){
+  document.getElementById('content').innerHTML = `
+    <div class="card">
+      <div class="flex-between mb-3">
+        <div class="card-title"><i class="fa-solid fa-clipboard-check" style="color:#7c3aed"></i>考试列表</div>
+        <button class="btn btn-primary" onclick="addExam()"><i class="fa-solid fa-plus"></i>新建考试</button>
+      </div>
+      <table>
+        <thead><tr><th>考试名称</th><th>日期</th><th>科目数</th><th>参考人数</th><th>操作</th></tr></thead>
+        <tbody>${state.exams.map(e=>`<tr>
+          <td><strong>${e.name}</strong></td>
+          <td>${e.date}</td>
+          <td>${e.subjects.length}</td>
+          <td>${e.scores.length}</td>
+          <td>
+            <button class="btn btn-outline btn-sm" onclick="delExam('${e.id}')">删除</button>
+          </td>
+        </tr>`).join('')||'<tr><td colspan="5" class="empty"><i class="fa-solid fa-inbox"></i>暂无考试数据</td></tr>'}</tbody>
+      </table>
+    </div>
+  `;
+}
+function addExam(){
+  const body = `
+    <div class="form-group"><label>考试名称</label><input class="form-control" id="e_name" placeholder="如:第三次月考"></div>
+    <div class="form-group"><label>考试日期</label><input class="form-control" id="e_date" type="date" value="${todayStr()}"></div>
+    <div class="form-group"><label>科目(逗号分隔)</label><input class="form-control" id="e_subjects" value="语文,数学,英语,物理,政治,历史"></div>
+  `;
+  const footer = `<button class="btn btn-outline" onclick="closeModal()">取消</button>
+    <button class="btn btn-primary" onclick="saveExam()">创建</button>`;
+  openModal('新建考试', body, footer);
+}
+function saveExam(){
+  const name = document.getElementById('e_name').value;
+  const date = document.getElementById('e_date').value;
+  const subjects = document.getElementById('e_subjects').value.split(/[,，]/).map(s=>s.trim()).filter(Boolean);
+  if(!name){showToast('请输入考试名称');return}
+  const id = 'E'+Date.now();
+  state.exams.push({
+    id, name, date, subjects,
+    scores: state.students.map(stu=>{
+      const obj = {sid:stu.id, name:stu.name};
+      subjects.forEach(sub=>{obj[sub]=0});
+      obj.total = 0; obj.rank = 0;
+      return obj;
+    })
+  });
+  saveState();renderScoreExamList();closeModal();showToast('考试已创建');
+}
+function delExam(eid){
+  if(!confirm('确定删除该考试?所有成绩数据将丢失'))return;
+  state.exams = state.exams.filter(e=>e.id!==eid);
+  saveState();renderScoreExamList();showToast('已删除');
+}
+
+function renderScoreInput(){
+  if(!state.exams.length){
+    document.getElementById('content').innerHTML = `<div class="card empty"><i class="fa-solid fa-inbox"></i>暂无考试,请先创建</div>`;
+    return;
+  }
+  const exam = state.exams[state.exams.length-1];
+  document.getElementById('content').innerHTML = `
+    <div class="card">
+      <div class="flex-between mb-3">
+        <div class="card-title"><i class="fa-solid fa-pen-to-square" style="color:#10b981"></i>成绩录入</div>
+        <select class="form-control" style="width:auto" id="examSel" onchange="renderScoreInput()">
+          ${state.exams.map(e=>`<option value="${e.id}" ${e.id===exam.id?'selected':''}>${e.name}</option>`).join('')}
+        </select>
+      </div>
+      <div class="toolbar">
+        <button class="btn btn-outline" onclick="downloadScoreTemplate()"><i class="fa-solid fa-download"></i>下载模板</button>
+        <button class="btn btn-outline" onclick="document.getElementById('scoreFile').click()"><i class="fa-solid fa-file-import"></i>Excel 导入</button>
+        <input type="file" id="scoreFile" accept=".xlsx,.xls" style="display:none" onchange="importScoreExcel()">
+        <button class="btn btn-primary" onclick="saveScores()"><i class="fa-solid fa-save"></i>保存成绩</button>
+      </div>
+      <div style="overflow-x:auto;max-height:600px">
+        <table>
+          <thead><tr><th>序号</th><th>姓名</th>${exam.subjects.map(s=>`<th>${s}</th>`).join('')}<th>总分</th></tr></thead>
+          <tbody>
+            ${exam.scores.map((sc,i)=>`<tr>
+              <td>${i+1}</td>
+              <td>${sc.name}</td>
+              ${exam.subjects.map(sub=>`<td><input class="form-control" style="width:80px;padding:4px 8px" type="number" value="${sc[sub]||0}" onchange="updateScore('${sc.sid}','${sub}',this.value)"></td>`).join('')}
+              <td><strong id="total_${sc.sid}">${sc.total}</strong></td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+function updateScore(sid, sub, val){
+  const eid = document.getElementById('examSel').value;
+  const exam = state.exams.find(e=>e.id===eid);
+  const sc = exam.scores.find(s=>s.sid===sid);
+  sc[sub] = Number(val);
+  sc.total = exam.subjects.reduce((s,k)=>s+(sc[k]||0),0);
+  document.getElementById('total_'+sid).textContent = sc.total;
+}
+function saveScores(){
+  const eid = document.getElementById('examSel').value;
+  const exam = state.exams.find(e=>e.id===eid);
+  // 计算排名
+  const sorted = [...exam.scores].sort((a,b)=>b.total-a.total);
+  sorted.forEach((sc,i)=>sc.rank = i+1);
+  saveState();showToast('成绩已保存,排名已自动计算');
+}
+function downloadScoreTemplate(){
+  const exam = state.exams[state.exams.length-1];
+  const data = [['姓名',...exam.subjects,'总分']];
+  state.students.forEach(s=>{data.push([s.name, ...exam.subjects.map(()=>''), ''])});
+  exportExcel(data, '成绩模板', '成绩导入模板.xlsx');
+}
+function importScoreExcel(){
+  const file = document.getElementById('scoreFile').files[0];
+  if(!file)return;
+  const eid = document.getElementById('examSel').value;
+  const exam = state.exams.find(e=>e.id===eid);
+  const reader = new FileReader();
+  reader.onload = e=>{
+    const wb = XLSX.read(e.target.result,{type:'binary'});
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(ws);
+    rows.forEach(r=>{
+      const sc = exam.scores.find(s=>s.name===r['姓名']);
+      if(!sc)return;
+      exam.subjects.forEach(sub=>{if(r[sub]!==undefined) sc[sub] = Number(r[sub])});
+      sc.total = exam.subjects.reduce((s,k)=>s+(sc[k]||0),0);
+    });
+    const sorted = [...exam.scores].sort((a,b)=>b.total-a.total);
+    sorted.forEach((sc,i)=>sc.rank=i+1);
+    saveState();renderScoreInput();showToast('导入成功');
+  };
+  reader.readAsBinaryString(file);
+}
+
+function renderScoreSingle(){
+  if(!state.exams.length){
+    document.getElementById('content').innerHTML = `<div class="card empty"><i class="fa-solid fa-inbox"></i>暂无考试数据</div>`;
+    return;
+  }
+  const exam = state.exams[state.exams.length-1];
+  const subjectStats = exam.subjects.map(sub=>{
+    const scores = exam.scores.map(s=>s[sub]);
+    scores.sort((a,b)=>a-b);
+    const avg = (scores.reduce((a,b)=>a+b,0)/scores.length).toFixed(1);
+    const max = Math.max(...scores);
+    const min = Math.min(...scores);
+    const passRate = (scores.filter(s=>s>=60).length/scores.length*100).toFixed(1);
+    const excellent = (scores.filter(s=>s>=85).length/scores.length*100).toFixed(1);
+    return {sub, avg, max, min, passRate, excellent};
+  });
+  document.getElementById('content').innerHTML = `
+    <div class="card">
+      <div class="flex-between mb-3">
+        <div class="card-title"><i class="fa-solid fa-chart-bar" style="color:#8b5cf6"></i>单次考试分析</div>
+        <select class="form-control" style="width:auto" id="examSel2" onchange="renderScoreSingle()">
+          ${state.exams.map(e=>`<option value="${e.id}" ${e.id===exam.id?'selected':''}>${e.name}</option>`).join('')}
+        </select>
+      </div>
+      <div class="grid-3 mb-4">
+        <div class="stat"><div class="ic" style="background:#8b5cf6"><i class="fa-solid fa-users"></i></div><div><div class="label">参考人数</div><div class="num">${exam.scores.length}</div></div></div>
+        <div class="stat"><div class="ic" style="background:#10b981"><i class="fa-solid fa-trophy"></i></div><div><div class="label">最高总分</div><div class="num">${Math.max(...exam.scores.map(s=>s.total))}</div></div></div>
+        <div class="stat"><div class="ic" style="background:#f59e0b"><i class="fa-solid fa-chart-line"></i></div><div><div class="label">平均总分</div><div class="num">${(exam.scores.reduce((a,b)=>a+b.total,0)/exam.scores.length).toFixed(1)}</div></div></div>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">各科分析</div>
+          <table>
+            <thead><tr><th>科目</th><th>平均分</th><th>最高</th><th>最低</th><th>及格率</th><th>优秀率</th></tr></thead>
+            <tbody>${subjectStats.map(s=>`<tr><td>${s.sub}</td><td><strong>${s.avg}</strong></td><td>${s.max}</td><td>${s.min}</td><td>${s.passRate}%</td><td>${s.excellent}%</td></tr>`).join('')}</tbody>
+          </table>
+        </div>
+        <div class="card">
+          <div class="card-title">各科平均分对比</div>
+          <div class="chart-container"><canvas id="singleChart"></canvas></div>
+        </div>
+      </div>
+    </div>
+  `;
+  requestAnimationFrame(()=>{
+  new Chart(document.getElementById('singleChart'), {
+    type: 'bar',
+    data: {
+      labels: subjectStats.map(s=>s.sub),
+      datasets: [
+        {label:'平均分', data:subjectStats.map(s=>s.avg), backgroundColor:'#8b5cf6'},
+        {label:'最高分', data:subjectStats.map(s=>s.max), backgroundColor:'#10b981'},
+        {label:'最低分', data:subjectStats.map(s=>s.min), backgroundColor:'#ef4444'}
+      ]
+    },
+    options: {responsive:true,maintainAspectRatio:false,scales:{y:{beginAtZero:true,max:100}}}
+  });
+  });
+}
+
+function renderScoreTrend(){
+  if(state.exams.length<2){
+    document.getElementById('content').innerHTML = `<div class="card empty"><i class="fa-solid fa-inbox"></i>需要至少 2 次考试数据</div>`;
+    return;
+  }
+  document.getElementById('content').innerHTML = `
+    <div class="card">
+      <div class="card-title"><i class="fa-solid fa-arrow-trend-up" style="color:#06b6d4"></i>个人成绩趋势</div>
+      <div class="form-group">
+        <select class="form-control" id="trendStu" onchange="renderTrendChart()" style="max-width:300px">
+          ${state.students.map(s=>`<option value="${s.id}">${s.name}</option>`).join('')}
+        </select>
+      </div>
+      <div class="chart-container" style="height:340px"><canvas id="trendChart"></canvas></div>
+      <h4 style="margin-top:20px">历次考试成绩</h4>
+      <div style="overflow-x:auto">
+        <table id="trendTable">
+          <thead><tr><th>考试</th>${state.exams[0].subjects.map(s=>`<th>${s}</th>`).join('')}<th>总分</th><th>班级排名</th><th>趋势</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  `;
+  renderTrendChart();
+}
+function renderTrendChart(){
+  // 等待布局完成后再渲染
+  requestAnimationFrame(()=>{
+  const sid = document.getElementById('trendStu').value;
+  const stu = getStudent(sid);
+  const datasets = [
+    {label:'总分', data:state.exams.map(e=>e.scores.find(s=>s.sid===sid)?.total||0), borderColor:'#7c3aed', backgroundColor:'#ede9fe', yAxisID:'y', tension:0.3},
+    {label:'排名', data:state.exams.map(e=>e.scores.find(s=>s.sid===sid)?.rank||0), borderColor:'#ef4444', backgroundColor:'#fee2e2', yAxisID:'y1', tension:0.3}
+  ];
+  if(window.trendChart) window.trendChart.destroy();
+  window.trendChart = new Chart(document.getElementById('trendChart'), {
+    type:'line',
+    data:{labels:state.exams.map(e=>e.name), datasets},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      scales:{
+        y:{position:'left',beginAtZero:false,title:{display:true,text:'总分'}},
+        y1:{position:'right',reverse:true,title:{display:true,text:'排名'},grid:{display:false}}
+      }
+    }
+  });
+  // 表格
+  const tbody = document.querySelector('#trendTable tbody');
+  tbody.innerHTML = state.exams.map((e,i)=>{
+    const sc = e.scores.find(s=>s.sid===sid);
+    if(!sc) return '';
+    let trend = '-';
+    if(i>0){
+      const prev = state.exams[i-1].scores.find(s=>s.sid===sid);
+      if(prev){
+        const diff = sc.total - prev.total;
+        if(diff>0) trend = `<span class="badge badge-green">↑ ${diff}</span>`;
+        else if(diff<0) trend = `<span class="badge badge-red">↓ ${Math.abs(diff)}</span>`;
+        else trend = `<span class="badge badge-gray">— 0</span>`;
+      }
+    }
+    return `<tr><td>${e.name}</td>${e.subjects.map(sub=>`<td>${sc[sub]||0}</td>`).join('')}<td><strong>${sc.total}</strong></td><td>第${sc.rank}名</td><td>${trend}</td></tr>`;
+  }).join('');
+  });
+}
+
+function renderScoreProgress(){
+  if(state.exams.length<2){
+    document.getElementById('content').innerHTML = `<div class="card empty"><i class="fa-solid fa-inbox"></i>需要至少 2 次考试数据</div>`;
+    return;
+  }
+  const latest = state.exams[state.exams.length-1];
+  const prev = state.exams[state.exams.length-2];
+  const progress = latest.scores.map(sc=>{
+    const prevSc = prev.scores.find(s=>s.sid===sc.sid);
+    return {
+      name: sc.name, sid: sc.sid,
+      currTotal: sc.total, prevTotal: prevSc?prevSc.total:0,
+      diff: prevSc?sc.total - prevSc.total:0,
+      currRank: sc.rank, prevRank: prevSc?prevSc.rank:0
+    };
+  }).sort((a,b)=>b.diff-a.diff);
+  document.getElementById('content').innerHTML = `
+    <div class="card">
+      <div class="card-title"><i class="fa-solid fa-chart-line" style="color:#10b981"></i>进退步分析</div>
+      <div class="text-muted mb-3">对比最新两次考试,分析每位学生的进退步情况</div>
+      <div class="grid-2">
+        <div class="card" style="background:#f0fdf4">
+          <h4 style="color:#059669"><i class="fa-solid fa-arrow-up"></i> 进步榜 TOP10</h4>
+          <table><thead><tr><th>排名</th><th>姓名</th><th>当前总分</th><th>上次总分</th><th>进步</th></tr></thead>
+          <tbody>${progress.filter(p=>p.diff>0).slice(0,10).map((p,i)=>`<tr><td>${i+1}</td><td>${p.name}</td><td>${p.currTotal}</td><td>${p.prevTotal}</td><td><span class="badge badge-green">+${p.diff}</span></td></tr>`).join('')||'<tr><td colspan="5" class="text-muted" style="text-align:center">无人进步</td></tr>'}</tbody></table>
+        </div>
+        <div class="card" style="background:#fef2f2">
+          <h4 style="color:#dc2626"><i class="fa-solid fa-arrow-down"></i> 退步榜 TOP10</h4>
+          <table><thead><tr><th>排名</th><th>姓名</th><th>当前总分</th><th>上次总分</th><th>退步</th></tr></thead>
+          <tbody>${progress.filter(p=>p.diff<0).slice(-10).reverse().map((p,i)=>`<tr><td>${i+1}</td><td>${p.name}</td><td>${p.currTotal}</td><td>${p.prevTotal}</td><td><span class="badge badge-red">${p.diff}</span></td></tr>`).join('')||'<tr><td colspan="5" class="text-muted" style="text-align:center">无人退步</td></tr>'}</tbody></table>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderScoreRank(){
+  if(!state.exams.length){
+    document.getElementById('content').innerHTML = `<div class="card empty"><i class="fa-solid fa-inbox"></i>暂无数据</div>`;
+    return;
+  }
+  const exam = state.exams[state.exams.length-1];
+  const sorted = [...exam.scores].sort((a,b)=>b.total-a.total);
+  document.getElementById('content').innerHTML = `
+    <div class="card">
+      <div class="flex-between mb-3">
+        <div class="card-title"><i class="fa-solid fa-medal" style="color:#f59e0b"></i>班级排名总表</div>
+        <div>
+          <select class="form-control" style="width:auto;display:inline-block" id="examSel3" onchange="renderScoreRank()">
+            ${state.exams.map(e=>`<option value="${e.id}" ${e.id===exam.id?'selected':''}>${e.name}</option>`).join('')}
+          </select>
+          <button class="btn btn-success" onclick="exportRankExcel()"><i class="fa-solid fa-file-excel"></i>导出</button>
+        </div>
+      </div>
+      <div style="overflow-x:auto;max-height:600px">
+        <table>
+          <thead><tr><th>排名</th><th>姓名</th>${exam.subjects.map(s=>`<th>${s}</th>`).join('')}<th>总分</th><th>与上次对比</th></tr></thead>
+          <tbody>${sorted.map((sc,i)=>{
+            const prevEx = state.exams[state.exams.length-2];
+            const prevSc = prevEx?prevEx.scores.find(s=>s.sid===sc.sid):null;
+            let cmp = '-';
+            if(prevSc){
+              const d = sc.rank - prevSc.rank;
+              if(d<0) cmp = `<span class="badge badge-green">↑${Math.abs(d)}</span>`;
+              else if(d>0) cmp = `<span class="badge badge-red">↓${d}</span>`;
+              else cmp = `<span class="badge badge-gray">—</span>`;
+            }
+            return `<tr><td><strong>${i+1}</strong></td><td>${sc.name}</td>${exam.subjects.map(sub=>{
+              const max = Math.max(...exam.scores.map(s=>s[sub]));
+              const isMax = sc[sub]===max;
+              return `<td ${isMax?'style="color:#059669;font-weight:600"':''}>${sc[sub]||0}</td>`;
+            }).join('')}<td><strong style="color:#6d28d9">${sc.total}</strong></td><td>${cmp}</td></tr>`;
+          }).join('')}</tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+function exportRankExcel(){
+  const exam = state.exams[state.exams.length-1];
+  const data = [['排名','姓名',...exam.subjects,'总分']];
+  [...exam.scores].sort((a,b)=>b.total-a.total).forEach((sc,i)=>{
+    data.push([i+1, sc.name, ...exam.subjects.map(sub=>sc[sub]||0), sc.total]);
+  });
+  exportExcel(data, '排名表', exam.name+'-排名表.xlsx');
+  showToast('已导出');
+}
+
+function renderScoreSubjects(){
+  const subjects = state.exams[0]?state.exams[0].subjects:[];
+  document.getElementById('content').innerHTML = `
+    <div class="card">
+      <div class="card-title"><i class="fa-solid fa-book" style="color:#8b5cf6"></i>科目设置</div>
+      <div class="text-muted mb-3">管理班级考试科目,科目将用于所有考试和成绩分析</div>
+      <div class="form-group">
+        <label>当前科目(逗号分隔)</label>
+        <textarea class="form-control" id="subjList" rows="3">${subjects.join(',')}</textarea>
+      </div>
+      <button class="btn btn-primary" onclick="saveSubjects()"><i class="fa-solid fa-save"></i>保存</button>
+      <div class="text-muted mt-3" style="font-size:12px">注:修改科目后,已存在的考试成绩可能需要重新录入</div>
+    </div>
+  `;
+}
+function saveSubjects(){
+  const subs = document.getElementById('subjList').value.split(/[,，]/).map(s=>s.trim()).filter(Boolean);
+  state.exams.forEach(e=>{
+    e.subjects = subs;
+    e.scores.forEach(sc=>{
+      subs.forEach(s=>{if(sc[s]===undefined) sc[s]=0});
+      sc.total = subs.reduce((sum,k)=>sum+(sc[k]||0),0);
+    });
+    const sorted = [...e.scores].sort((a,b)=>b.total-a.total);
+    sorted.forEach((sc,i)=>sc.rank = i+1);
+  });
+  saveState();showToast('已保存,排名已重算');
+}
+
+/* ---- 违纪统计 ---- */
+function renderViolation(){
+  const typeStats = {};
+  state.violations.forEach(v=>{typeStats[v.type] = (typeStats[v.type]||0)+1});
+  const stuStats = {};
+  state.violations.forEach(v=>{stuStats[v.name] = (stuStats[v.name]||0)+1});
+  const topStu = Object.entries(stuStats).sort((a,b)=>b[1]-a[1]).slice(0,5);
+
+  document.getElementById('content').innerHTML = `
+    <div class="card">
+      <div class="flex-between mb-3">
+        <div class="card-title"><i class="fa-solid fa-triangle-exclamation" style="color:#ef4444"></i>违纪记录</div>
+        <button class="btn btn-primary" onclick="addViolation()"><i class="fa-solid fa-plus"></i>记违纪</button>
+      </div>
+      <div class="grid-2 mb-4">
+        <div class="card">
+          <div class="card-title">类型分布</div>
+          <div class="chart-container"><canvas id="vioPie"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-title">月度趋势</div>
+          <div class="chart-container"><canvas id="vioLine"></canvas></div>
+        </div>
+      </div>
+      <div class="card mb-4">
+        <div class="card-title">违纪次数最多学生 TOP5</div>
+        <table>
+          <thead><tr><th>排名</th><th>姓名</th><th>违纪次数</th></tr></thead>
+          <tbody>${topStu.map(([n,c],i)=>`<tr><td>${i+1}</td><td>${n}</td><td><span class="badge badge-red">${c}</span></td></tr>`).join('')||'<tr><td colspan="3" class="empty">暂无数据</td></tr>'}</tbody>
+        </table>
+      </div>
+      <div class="card">
+        <div class="card-title">违纪明细</div>
+        <div style="overflow-x:auto">
+          <table>
+            <thead><tr><th>日期</th><th>姓名</th><th>类型</th><th>说明</th><th>处理人</th><th>操作</th></tr></thead>
+            <tbody>${state.violations.map(v=>`<tr>
+              <td>${v.date}</td><td>${v.name}</td><td><span class="badge badge-yellow">${v.type}</span></td><td>${v.desc}</td><td>${v.handler}</td>
+              <td><button class="btn btn-danger btn-sm" onclick="delViolation('${v.id}')">删除</button></td>
+            </tr>`).join('')||'<tr><td colspan="6" class="empty"><i class="fa-solid fa-inbox"></i>暂无违纪记录</td></tr>'}</tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  `;
+  if(Object.keys(typeStats).length){
+    new Chart(document.getElementById('vioPie'),{
+      type:'doughnut',
+      data:{labels:Object.keys(typeStats),datasets:[{data:Object.values(typeStats),backgroundColor:['#ef4444','#f59e0b','#10b981','#7c3aed','#8b5cf6','#ec4899','#06b6d4']}]},
+      options:{responsive:true,maintainAspectRatio:false}
+    });
+  }
+  // 月度趋势
+  const months = {};
+  state.violations.forEach(v=>{const m = v.date.slice(0,7); months[m]=(months[m]||0)+1});
+  const ms = Object.keys(months).sort();
+  if(ms.length){
+    new Chart(document.getElementById('vioLine'),{
+      type:'line',
+      data:{labels:ms,datasets:[{label:'违纪次数',data:ms.map(m=>months[m]),borderColor:'#ef4444',backgroundColor:'rgba(239,68,68,.1)',fill:true,tension:0.3}]},
+      options:{responsive:true,maintainAspectRatio:false}
+    });
+  }
+}
+function addViolation(){
+  const body = `
+    <div class="form-group"><label>学生</label><select class="form-control" id="v_stu">${state.students.map(s=>`<option value="${s.id}">${s.name}</option>`).join('')}</select></div>
+    <div class="form-group"><label>类型</label><select class="form-control" id="v_type"><option>上课说话</option><option>迟到</option><option>未交作业</option><option>课堂睡觉</option><option>打架</option><option>仪容仪表</option><option>其他</option></select></div>
+    <div class="form-group"><label>日期</label><input class="form-control" id="v_date" type="date" value="${todayStr()}"></div>
+    <div class="form-group"><label>说明</label><textarea class="form-control" id="v_desc" rows="3"></textarea></div>
+    <div class="form-group"><label>处理人</label><input class="form-control" id="v_handler" value="${state.classInfo.teacher}"></div>
+  `;
+  openModal('记违纪', body, `<button class="btn btn-outline" onclick="closeModal()">取消</button><button class="btn btn-primary" onclick="saveViolation()">保存</button>`);
+}
+function saveViolation(){
+  const sid = document.getElementById('v_stu').value;
+  const stu = getStudent(sid);
+  state.violations.push({
+    id: 'V'+Date.now(),
+    sid,
+    name: stu.name,
+    type: document.getElementById('v_type').value,
+    date: document.getElementById('v_date').value,
+    desc: document.getElementById('v_desc').value,
+    handler: document.getElementById('v_handler').value
+  });
+  saveState();renderViolation();closeModal();showToast('已记录');
+}
+function delViolation(vid){
+  if(!confirm('确定删除该记录?'))return;
+  state.violations = state.violations.filter(v=>v.id!==vid);
+  saveState();renderViolation();showToast('已删除');
+}
+
+/* ---- 作业管理 ---- */
+function renderHomework(){
+  document.getElementById('content').innerHTML = `
+    <div class="card">
+      <div class="flex-between mb-3">
+        <div class="card-title"><i class="fa-solid fa-clipboard-list" style="color:#7c3aed"></i>作业管理</div>
+        <button class="btn btn-primary" onclick="addHomework()"><i class="fa-solid fa-plus"></i>布置作业</button>
+      </div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr><th>日期</th><th>科目</th><th>内容</th><th>提交率</th><th>未交人数</th><th>操作</th></tr></thead>
+          <tbody>${state.homework.slice().reverse().map(h=>{
+            const sub = h.records.filter(r=>r.status==='submitted').length;
+            const total = h.records.length;
+            const rate = total?((sub/total)*100).toFixed(1):0;
+            return `<tr><td>${h.date}</td><td><span class="badge badge-blue">${h.subject}</span></td><td>${h.content}</td>
+              <td><div class="progress" style="width:120px;display:inline-block;vertical-align:middle"><div class="progress-bar" style="width:${rate}%"></div></div> <span style="margin-left:6px">${rate}%</span></td>
+              <td><span class="badge ${sub===total?'badge-green':'badge-red'}">${total-sub}</span></td>
+              <td><button class="btn btn-outline btn-sm" onclick="viewHomework('${h.id}')">查看</button><button class="btn btn-danger btn-sm" onclick="delHomework('${h.id}')">删除</button></td>
+            </tr>`;
+          }).join('')||'<tr><td colspan="6" class="empty"><i class="fa-solid fa-inbox"></i>暂无作业</td></tr>'}</tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+function addHomework(){
+  const body = `
+    <div class="form-group"><label>日期</label><input class="form-control" id="h_date" type="date" value="${todayStr()}"></div>
+    <div class="form-group"><label>科目</label><select class="form-control" id="h_sub">${['语文','数学','英语','物理','政治','历史','化学','生物','地理'].map(s=>`<option>${s}</option>`).join('')}</select></div>
+    <div class="form-group"><label>截止日期</label><input class="form-control" id="h_dl" type="date" value="${todayStr()}"></div>
+    <div class="form-group"><label>作业内容</label><textarea class="form-control" id="h_content" rows="3" placeholder="例如:练习册 P23-25"></textarea></div>
+  `;
+  openModal('布置作业', body, `<button class="btn btn-outline" onclick="closeModal()">取消</button><button class="btn btn-primary" onclick="saveHomework()">保存</button>`);
+}
+function saveHomework(){
+  const h = {
+    id: 'H'+Date.now(),
+    date: document.getElementById('h_date').value,
+    subject: document.getElementById('h_sub').value,
+    content: document.getElementById('h_content').value,
+    deadline: document.getElementById('h_dl').value,
+    records: state.students.map(s=>({sid:s.id, name:s.name, status:'unsubmitted'}))
+  };
+  state.homework.push(h);
+  saveState();renderHomework();closeModal();showToast('已布置');
+}
+function viewHomework(hid){
+  const h = state.homework.find(x=>x.id===hid);
+  const unsub = h.records.filter(r=>r.status==='unsubmitted');
+  const body = `
+    <h4>${h.subject} - ${h.content}</h4>
+    <p class="text-muted">布置日期: ${h.date} · 截止日期: ${h.deadline}</p>
+    <h5>未交学生 (${unsub.length})</h5>
+    <div>${unsub.length?unsub.map(r=>`<span class="badge badge-red" style="margin:2px">${r.name}</span>`).join(''):'<span class="text-muted">全部已交</span>'}</div>
+  `;
+  openModal('作业详情', body, `<button class="btn btn-primary" onclick="markAllSubmitted('${h.id}')">一键标记全部已交</button><button class="btn btn-outline" onclick="closeModal()">关闭</button>`);
+}
+function markAllSubmitted(hid){
+  const h = state.homework.find(x=>x.id===hid);
+  h.records.forEach(r=>r.status='submitted');
+  saveState();renderHomework();closeModal();showToast('已标记');
+}
+function delHomework(hid){
+  if(!confirm('确定删除?'))return;
+  state.homework = state.homework.filter(h=>h.id!==hid);
+  saveState();renderHomework();showToast('已删除');
+}
+
+/* ---- 请假管理 ---- */
+function renderLeave(){
+  document.getElementById('content').innerHTML = `
+    <div class="card">
+      <div class="flex-between mb-3">
+        <div class="card-title"><i class="fa-solid fa-file-signature" style="color:#06b6d4"></i>请假管理</div>
+        <div>
+          <button class="btn btn-outline" onclick="exportLeaveExcel()"><i class="fa-solid fa-file-excel"></i>导出 Excel</button>
+          <button class="btn btn-outline" onclick="exportLeaveWord()"><i class="fa-solid fa-file-word"></i>导出请假条 Word</button>
+          <button class="btn btn-primary" onclick="addLeave()"><i class="fa-solid fa-plus"></i>登记请假</button>
+        </div>
+      </div>
+      <div class="steps">
+        <div class="step active"><div class="dot">1</div><div class="label">选择学生</div></div>
+        <div class="step"><div class="dot">2</div><div class="label">填写信息</div></div>
+        <div class="step"><div class="dot">3</div><div class="label">提交审批</div></div>
+        <div class="step"><div class="dot">4</div><div class="label">完成</div></div>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">请假统计</div>
+          <div>${(()=>{
+            const total = state.leaves.length;
+            const approved = state.leaves.filter(l=>l.status==='approved').length;
+            const pending = state.leaves.filter(l=>l.status==='pending').length;
+            const days = state.leaves.reduce((s,l)=>s+l.days,0);
+            return `<div class="stat-grid" style="grid-template-columns:1fr 1fr">
+              <div class="stat"><div class="ic" style="background:#06b6d4"><i class="fa-solid fa-file"></i></div><div><div class="label">总请假次数</div><div class="num">${total}</div></div></div>
+              <div class="stat"><div class="ic" style="background:#10b981"><i class="fa-solid fa-check"></i></div><div><div class="label">已批准</div><div class="num">${approved}</div></div></div>
+              <div class="stat"><div class="ic" style="background:#f59e0b"><i class="fa-solid fa-clock"></i></div><div><div class="label">待审批</div><div class="num">${pending}</div></div></div>
+              <div class="stat"><div class="ic" style="background:#8b5cf6"><i class="fa-solid fa-calendar"></i></div><div><div class="label">请假总天数</div><div class="num">${days}</div></div></div>
+            </div>`;
+          })()}</div>
+        </div>
+        <div class="card">
+          <div class="card-title">类型分布</div>
+          <div class="chart-container"><canvas id="leaveChart"></canvas></div>
+        </div>
+      </div>
+      <div class="card mt-4">
+        <div class="card-title">请假记录</div>
+        <table>
+          <thead><tr><th>学生</th><th>类型</th><th>开始</th><th>结束</th><th>天数</th><th>原因</th><th>状态</th><th>操作</th></tr></thead>
+          <tbody>${state.leaves.map(l=>`<tr>
+            <td>${l.name}</td>
+            <td><span class="badge ${l.type==='病假'?'badge-red':l.type==='事假'?'badge-yellow':'badge-blue'}">${l.type}</span></td>
+            <td>${l.start}</td><td>${l.end}</td><td>${l.days}</td>
+            <td>${l.reason}</td>
+            <td>${l.status==='approved'?'<span class="badge badge-green">已批准</span>':'<span class="badge badge-yellow">待审批</span>'}</td>
+            <td>
+              ${l.status==='pending'?`<button class="btn btn-success btn-sm" onclick="approveLeave('${l.id}')">批准</button>`:''}
+              <button class="btn btn-danger btn-sm" onclick="delLeave('${l.id}')">删除</button>
+            </td>
+          </tr>`).join('')||'<tr><td colspan="8" class="empty"><i class="fa-solid fa-inbox"></i>暂无记录</td></tr>'}</tbody>
+        </table>
+      </div>
+    </div>
+  `;
+  const typeStats = {};
+  state.leaves.forEach(l=>{typeStats[l.type]=(typeStats[l.type]||0)+1});
+  if(Object.keys(typeStats).length){
+    new Chart(document.getElementById('leaveChart'),{
+      type:'pie',
+      data:{labels:Object.keys(typeStats),datasets:[{data:Object.values(typeStats),backgroundColor:['#ef4444','#f59e0b','#7c3aed']}]},
+      options:{responsive:true,maintainAspectRatio:false}
+    });
+  }
+}
+function addLeave(){
+  const body = `
+    <div class="form-group"><label>学生</label><select class="form-control" id="l_stu">${state.students.map(s=>`<option value="${s.id}">${s.name}</option>`).join('')}</select></div>
+    <div class="form-group"><label>请假类型</label><select class="form-control" id="l_type"><option>病假</option><option>事假</option><option>公假</option></select></div>
+    <div class="grid-2">
+      <div class="form-group"><label>开始日期</label><input class="form-control" id="l_start" type="date" value="${todayStr()}"></div>
+      <div class="form-group"><label>结束日期</label><input class="form-control" id="l_end" type="date" value="${todayStr()}"></div>
+    </div>
+    <div class="form-group"><label>请假原因</label><textarea class="form-control" id="l_reason" rows="3"></textarea></div>
+  `;
+  openModal('登记请假 - 4步流程', body, `<button class="btn btn-outline" onclick="closeModal()">取消</button><button class="btn btn-primary" onclick="saveLeave()">提交申请</button>`);
+}
+function saveLeave(){
+  const sid = document.getElementById('l_stu').value;
+  const stu = getStudent(sid);
+  const start = document.getElementById('l_start').value;
+  const end = document.getElementById('l_end').value;
+  const days = Math.ceil((new Date(end)-new Date(start))/86400000)+1;
+  state.leaves.push({
+    id: 'L'+Date.now(),
+    sid, name: stu.name,
+    type: document.getElementById('l_type').value,
+    start, end, days,
+    reason: document.getElementById('l_reason').value,
+    status: 'pending',
+    approver: ''
+  });
+  saveState();renderLeave();closeModal();showToast('请假已登记');
+}
+function approveLeave(lid){
+  const l = state.leaves.find(x=>x.id===lid);
+  l.status = 'approved';
+  l.approver = state.classInfo.teacher;
+  saveState();renderLeave();showToast('已批准');
+}
+function delLeave(lid){
+  if(!confirm('确定删除?'))return;
+  state.leaves = state.leaves.filter(l=>l.id!==lid);
+  saveState();renderLeave();showToast('已删除');
+}
+function exportLeaveExcel(){
+  const data = [['学生','类型','开始日期','结束日期','天数','原因','状态','审批人']];
+  state.leaves.forEach(l=>{
+    data.push([l.name,l.type,l.start,l.end,l.days,l.reason,l.status==='approved'?'已批准':'待审批',l.approver||'']);
+  });
+  exportExcel(data,'请假记录','请假记录.xlsx');
+  showToast('已导出');
+}
+function exportLeaveWord(){
+  const html = `
+    <h1>请假条批量导出</h1>
+    <p>班级:${state.classInfo.name} · 导出时间:${today()}</p>
+    ${state.leaves.map(l=>`
+      <h2>${l.name} - ${l.type} (${l.days}天)</h2>
+      <p>请假时间: ${l.start} 至 ${l.end}</p>
+      <p>请假原因: ${l.reason}</p>
+      <p>审批状态: ${l.status==='approved'?'已批准':'待审批'}</p>
+      <p>审批人: ${l.approver||'____________'}</p>
+      <p>学生签名: ____________ 日期: ${todayStr()}</p>
+      <hr>
+    `).join('')}
+  `;
+  exportWord('请假条', html, '请假条汇总.doc');
+  showToast('已导出');
+}
+
+/* ---- 工作留痕 ---- */
+function renderWork(){
+  document.getElementById('content').innerHTML = `
+    <div class="card">
+      <div class="flex-between mb-3">
+        <div class="card-title"><i class="fa-solid fa-briefcase" style="color:#8b5cf6"></i>工作留痕</div>
+        <div>
+          <button class="btn btn-outline" onclick="exportWorkWord()"><i class="fa-solid fa-file-word"></i>批量导出 Word</button>
+          <button class="btn btn-primary" onclick="addWork()"><i class="fa-solid fa-plus"></i>记录工作</button>
+        </div>
+      </div>
+      <div class="grid-2 mb-4">
+        <div class="card">
+          <div class="card-title">类型分布</div>
+          <div class="chart-container"><canvas id="workChart"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-title">月度统计</div>
+          <div class="chart-container"><canvas id="workBar"></canvas></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">时间轴视图</div>
+        <div class="timeline">
+          ${state.works.slice().sort((a,b)=>b.date.localeCompare(a.date)).map(w=>`
+            <div class="tl-item">
+              <div class="tl-date">${w.date} · <span class="badge badge-blue">${w.type}</span> ${w.tag==='重要'?'<span class="badge badge-red">重要</span>':''}</div>
+              <div class="tl-title">${w.title}</div>
+              <div class="tl-content">${w.content}</div>
+              <div class="mt-2"><button class="btn btn-danger btn-sm" onclick="delWork('${w.id}')">删除</button></div>
+            </div>
+          `).join('')||'<div class="empty"><i class="fa-solid fa-inbox"></i>暂无记录</div>'}
+        </div>
+      </div>
+    </div>
+  `;
+  const typeStats = {};
+  state.works.forEach(w=>{typeStats[w.type]=(typeStats[w.type]||0)+1});
+  if(Object.keys(typeStats).length){
+    new Chart(document.getElementById('workChart'),{type:'doughnut',data:{labels:Object.keys(typeStats),datasets:[{data:Object.values(typeStats),backgroundColor:['#8b5cf6','#7c3aed','#10b981','#f59e0b','#ec4899']}]},options:{responsive:true,maintainAspectRatio:false}});
+  }
+  const months = {};
+  state.works.forEach(w=>{const m=w.date.slice(0,7); months[m]=(months[m]||0)+1});
+  const ms = Object.keys(months).sort();
+  if(ms.length){
+    new Chart(document.getElementById('workBar'),{type:'bar',data:{labels:ms,datasets:[{label:'工作记录数',data:ms.map(m=>months[m]),backgroundColor:'#8b5cf6'}]},options:{responsive:true,maintainAspectRatio:false}});
+  }
+}
+function addWork(){
+  const body = `
+    <div class="form-group"><label>日期</label><input class="form-control" id="w_date" type="date" value="${todayStr()}"></div>
+    <div class="form-group"><label>类型</label><select class="form-control" id="w_type"><option>班会</option><option>家访</option><option>谈话</option><option>其他</option></select></div>
+    <div class="form-group"><label>重要性</label><select class="form-control" id="w_tag"><option>一般</option><option>重要</option></select></div>
+    <div class="form-group"><label>标题</label><input class="form-control" id="w_title"></div>
+    <div class="form-group"><label>详细内容</label><textarea class="form-control" id="w_content" rows="5"></textarea></div>
+  `;
+  openModal('记录工作',body,`<button class="btn btn-outline" onclick="closeModal()">取消</button><button class="btn btn-primary" onclick="saveWork()">保存</button>`);
+}
+function saveWork(){
+  state.works.push({
+    id:'W'+Date.now(),
+    date: document.getElementById('w_date').value,
+    type: document.getElementById('w_type').value,
+    tag: document.getElementById('w_tag').value,
+    title: document.getElementById('w_title').value,
+    content: document.getElementById('w_content').value
+  });
+  saveState();renderWork();closeModal();showToast('已记录');
+}
+function delWork(wid){
+  if(!confirm('确定删除?'))return;
+  state.works = state.works.filter(w=>w.id!==wid);
+  saveState();renderWork();showToast('已删除');
+}
+function exportWorkWord(){
+  const html = `<h1>班主任工作留痕</h1><p>班级:${state.classInfo.name} · 班主任:${state.classInfo.teacher}</p>
+    <table><tr><th>日期</th><th>类型</th><th>重要性</th><th>标题</th><th>内容</th></tr>
+    ${state.works.map(w=>`<tr><td>${w.date}</td><td>${w.type}</td><td>${w.tag}</td><td>${w.title}</td><td>${w.content}</td></tr>`).join('')}</table>`;
+  exportWord('工作留痕', html, '工作留痕汇总.doc');
+  showToast('已导出');
+}
+
+/* ---- 谈话记录 ---- */
+function renderTalk(){
+  document.getElementById('content').innerHTML = `
+    <div class="card">
+      <div class="flex-between mb-3">
+        <div class="card-title"><i class="fa-solid fa-comments" style="color:#10b981"></i>谈话记录</div>
+        <div>
+          <button class="btn btn-outline" onclick="exportTalkWord()"><i class="fa-solid fa-file-word"></i>导出 Word</button>
+          <button class="btn btn-primary" onclick="addTalk()"><i class="fa-solid fa-plus"></i>新增谈话</button>
+        </div>
+      </div>
+      <table>
+        <thead><tr><th>日期</th><th>学生</th><th>主题</th><th>谈话内容</th><th>态度</th><th>下次跟进</th><th>操作</th></tr></thead>
+        <tbody>${state.talks.map(t=>`<tr>
+          <td>${t.date}</td><td>${t.name}</td><td>${t.topic}</td>
+          <td style="max-width:300px">${t.content}</td>
+          <td><span class="badge badge-blue">${t.mood}</span></td>
+          <td>${t.nextFollow}</td>
+          <td><button class="btn btn-danger btn-sm" onclick="delTalk('${t.id}')">删除</button></td>
+        </tr>`).join('')||'<tr><td colspan="7" class="empty"><i class="fa-solid fa-inbox"></i>暂无记录</td></tr>'}</tbody>
+      </table>
+    </div>
+  `;
+}
+function addTalk(){
+  const body = `
+    <div class="form-group"><label>学生</label><select class="form-control" id="t_stu">${state.students.map(s=>`<option value="${s.id}">${s.name}</option>`).join('')}</select></div>
+    <div class="form-group"><label>日期</label><input class="form-control" id="t_date" type="date" value="${todayStr()}"></div>
+    <div class="form-group"><label>谈话主题</label><input class="form-control" id="t_topic"></div>
+    <div class="form-group"><label>谈话内容</label><textarea class="form-control" id="t_content" rows="4"></textarea></div>
+    <div class="form-group"><label>学生态度</label><select class="form-control" id="t_mood"><option>积极</option><option>配合</option><option>抵触</option><option>沉默</option></select></div>
+    <div class="form-group"><label>下次跟进日期</label><input class="form-control" id="t_next" type="date"></div>
+  `;
+  openModal('新增谈话', body, `<button class="btn btn-outline" onclick="closeModal()">取消</button><button class="btn btn-primary" onclick="saveTalk()">保存</button>`);
+}
+function saveTalk(){
+  const sid = document.getElementById('t_stu').value;
+  const stu = getStudent(sid);
+  state.talks.push({
+    id:'T'+Date.now(),
+    sid, name: stu.name,
+    date: document.getElementById('t_date').value,
+    topic: document.getElementById('t_topic').value,
+    content: document.getElementById('t_content').value,
+    mood: document.getElementById('t_mood').value,
+    nextFollow: document.getElementById('t_next').value
+  });
+  saveState();renderTalk();closeModal();showToast('已记录');
+}
+function delTalk(tid){
+  if(!confirm('确定删除?'))return;
+  state.talks = state.talks.filter(t=>t.id!==tid);
+  saveState();renderTalk();showToast('已删除');
+}
+function exportTalkWord(){
+  const html = `<h1>学生谈话记录</h1><p>班级:${state.classInfo.name}</p>
+    <table><tr><th>日期</th><th>学生</th><th>主题</th><th>内容</th><th>态度</th><th>下次跟进</th></tr>
+    ${state.talks.map(t=>`<tr><td>${t.date}</td><td>${t.name}</td><td>${t.topic}</td><td>${t.content}</td><td>${t.mood}</td><td>${t.nextFollow}</td></tr>`).join('')}</table>`;
+  exportWord('谈话记录', html, '谈话记录汇总.doc');
+  showToast('已导出');
+}
+
+/* ---- 排座位 ---- */
+function renderSeat(){
+  const rows = 6, cols = 7;
+  document.getElementById('content').innerHTML = `
+    <div class="card">
+      <div class="flex-between mb-3">
+        <div class="card-title"><i class="fa-solid fa-chair" style="color:#f59e0b"></i>可视化排座位</div>
+        <div>
+          <button class="btn btn-outline" onclick="autoSeat()"><i class="fa-solid fa-wand-magic-sparkles"></i>自动排座</button>
+          <button class="btn btn-outline" onclick="clearSeat()"><i class="fa-solid fa-eraser"></i>清空</button>
+          <button class="btn btn-success" onclick="exportSeatImg()"><i class="fa-solid fa-image"></i>导出图片</button>
+        </div>
+      </div>
+      <div class="text-muted mb-3">提示:点击空白座位可分配学生,点击已分配座位可移除</div>
+      <div class="seating-board" id="seatBoard">
+        <div class="blackboard">讲 台</div>
+        ${Array.from({length:rows},(_,r)=>`
+          <div class="seat-row">
+            ${Array.from({length:cols},(_,c)=>{
+              const key = r+'_'+c;
+              const sid = state.seats[key];
+              const stu = sid?getStudent(sid):null;
+              return `<div class="seat ${stu?'assigned':''} ${!stu?'seat-empty':''}" onclick="editSeat(${r},${c})">
+                ${stu?`<div class="name">${stu.name}</div><div class="id">${stu.id}</div>`:'空座'}
+              </div>`;
+            }).join('')}
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
+function editSeat(r,c){
+  const key = r+'_'+c;
+  const cur = state.seats[key];
+  const body = `
+    <div class="form-group"><label>分配学生</label>
+      <select class="form-control" id="seat_sel">
+        <option value="">空座</option>
+        ${state.students.map(s=>`<option value="${s.id}" ${cur===s.id?'selected':''}>${s.name}</option>`).join('')}
+      </select>
+    </div>
+  `;
+  openModal(`座位 (第${r+1}排第${c+1}列)`, body, `<button class="btn btn-outline" onclick="closeModal()">取消</button><button class="btn btn-primary" onclick="saveSeat(${r},${c})">保存</button>`);
+}
+function saveSeat(r,c){
+  const v = document.getElementById('seat_sel').value;
+  const key = r+'_'+c;
+  if(v) state.seats[key] = v;
+  else delete state.seats[key];
+  saveState();renderSeat();closeModal();
+}
+function clearSeat(){
+  if(!confirm('清空所有座位安排?'))return;
+  state.seats = {};saveState();renderSeat();showToast('已清空');
+}
+function autoSeat(){
+  if(!confirm('将自动按学号顺序排座,当前安排将被覆盖,继续?'))return;
+  state.seats = {};
+  for(let r=0;r<6;r++){
+    for(let c=0;c<7;c++){
+      const idx = r*7+c;
+      if(idx<state.students.length) state.seats[r+'_'+c] = state.students[idx].id;
+    }
+  }
+  saveState();renderSeat();showToast('已自动排座');
+}
+async function exportSeatImg(){
+  const board = document.getElementById('seatBoard');
+  showToast('正在生成图片...');
+  try{
+    const canvas = await html2canvas(board,{backgroundColor:'#f8fafc',scale:2});
+    canvas.toBlob(blob=>{
+      saveAs(blob, state.classInfo.name+'-座位表.png');
+      showToast('已导出');
+    });
+  }catch(e){showToast('导出失败,请重试')}
+}
+
+/* ---- 家校沟通 ---- */
+function renderParent(){
+  document.getElementById('content').innerHTML = `
+    <div class="card">
+      <div class="flex-between mb-3">
+        <div class="card-title"><i class="fa-solid fa-house-chimney" style="color:#06b6d4"></i>家校沟通</div>
+        <button class="btn btn-primary" onclick="addParent()"><i class="fa-solid fa-plus"></i>记录沟通</button>
+      </div>
+      <div class="grid-2 mb-4">
+        <div class="card">
+          <div class="card-title">沟通类型分布</div>
+          <div class="chart-container"><canvas id="parentChart"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-title">沟通对象</div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+            <div class="stat" style="flex-direction:column;text-align:center"><div class="num">${state.parents.length}</div><div class="label">总沟通次数</div></div>
+            <div class="stat" style="flex-direction:column;text-align:center"><div class="num">${new Set(state.parents.map(p=>p.sid)).size}</div><div class="label">涉及学生</div></div>
+            <div class="stat" style="flex-direction:column;text-align:center"><div class="num">${state.parents.filter(p=>p.type==='电话').length}</div><div class="label">电话沟通</div></div>
+            <div class="stat" style="flex-direction:column;text-align:center"><div class="num">${state.parents.filter(p=>p.type==='面谈').length}</div><div class="label">面谈</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">沟通记录</div>
+        <table>
+          <thead><tr><th>日期</th><th>学生</th><th>家长</th><th>方式</th><th>主题</th><th>内容</th><th>操作</th></tr></thead>
+          <tbody>${state.parents.map(p=>`<tr>
+            <td>${p.date}</td><td>${p.name}</td><td>${p.parentName}</td>
+            <td><span class="badge badge-blue">${p.type}</span></td>
+            <td>${p.topic}</td>
+            <td style="max-width:300px">${p.content}</td>
+            <td><button class="btn btn-danger btn-sm" onclick="delParent('${p.id}')">删除</button></td>
+          </tr>`).join('')||'<tr><td colspan="7" class="empty"><i class="fa-solid fa-inbox"></i>暂无记录</td></tr>'}</tbody>
+        </table>
+      </div>
+    </div>
+  `;
+  const typeStats = {};
+  state.parents.forEach(p=>{typeStats[p.type]=(typeStats[p.type]||0)+1});
+  if(Object.keys(typeStats).length){
+    new Chart(document.getElementById('parentChart'),{type:'pie',data:{labels:Object.keys(typeStats),datasets:[{data:Object.values(typeStats),backgroundColor:['#06b6d4','#7c3aed','#10b981','#f59e0b']}]},options:{responsive:true,maintainAspectRatio:false}});
+  }
+}
+function addParent(){
+  const body = `
+    <div class="form-group"><label>学生</label><select class="form-control" id="p_stu" onchange="document.getElementById('p_pname').value=getStudent(this.value).parentName">${state.students.map(s=>`<option value="${s.id}">${s.name}</option>`).join('')}</select></div>
+    <div class="grid-2">
+      <div class="form-group"><label>家长姓名</label><input class="form-control" id="p_pname" value="${state.students[0].parentName}"></div>
+      <div class="form-group"><label>沟通方式</label><select class="form-control" id="p_type"><option>电话</option><option>面谈</option><option>家长会</option><option>家访</option><option>群通知</option></select></div>
+    </div>
+    <div class="form-group"><label>日期</label><input class="form-control" id="p_date" type="date" value="${todayStr()}"></div>
+    <div class="form-group"><label>沟通主题</label><input class="form-control" id="p_topic"></div>
+    <div class="form-group"><label>沟通内容</label><textarea class="form-control" id="p_content" rows="4"></textarea></div>
+  `;
+  openModal('记录沟通', body, `<button class="btn btn-outline" onclick="closeModal()">取消</button><button class="btn btn-primary" onclick="saveParent()">保存</button>`);
+}
+function saveParent(){
+  const sid = document.getElementById('p_stu').value;
+  const stu = getStudent(sid);
+  state.parents.push({
+    id:'P'+Date.now(),
+    date: document.getElementById('p_date').value,
+    sid, name: stu.name,
+    parentName: document.getElementById('p_pname').value,
+    type: document.getElementById('p_type').value,
+    topic: document.getElementById('p_topic').value,
+    content: document.getElementById('p_content').value
+  });
+  saveState();renderParent();closeModal();showToast('已记录');
+}
+function delParent(pid){
+  if(!confirm('确定删除?'))return;
+  state.parents = state.parents.filter(p=>p.id!==pid);
+  saveState();renderParent();showToast('已删除');
+}
+
+/* ---- 班级活动 ---- */
+function renderActivity(){
+  document.getElementById('content').innerHTML = `
+    <div class="card">
+      <div class="flex-between mb-3">
+        <div class="card-title"><i class="fa-solid fa-flag" style="color:#ec4899"></i>班级活动</div>
+        <button class="btn btn-primary" onclick="addActivity()"><i class="fa-solid fa-plus"></i>新增活动</button>
+      </div>
+      <div class="grid-3">
+        ${state.activities.map(a=>`
+          <div class="card">
+            <div class="flex-between">
+              <span class="badge badge-blue">${a.type}</span>
+              <span class="text-muted" style="font-size:12px">${a.date}</span>
+            </div>
+            <h4 style="margin:8px 0">${a.name}</h4>
+            <div class="text-muted" style="font-size:13px">参与人数: ${a.participants}</div>
+            <p style="font-size:13px;margin:8px 0">${a.content}</p>
+            <div class="badge badge-green">${a.result}</div>
+            <div class="mt-3"><button class="btn btn-danger btn-sm" onclick="delActivity('${a.id}')">删除</button></div>
+          </div>
+        `).join('')||'<div class="empty"><i class="fa-solid fa-inbox"></i>暂无活动</div>'}
+      </div>
+    </div>
+  `;
+}
+function addActivity(){
+  const body = `
+    <div class="form-group"><label>活动名称</label><input class="form-control" id="a_name"></div>
+    <div class="form-group"><label>活动类型</label><select class="form-control" id="a_type"><option>主题班会</option><option>课外活动</option><option>获奖</option><option>值日安排</option><option>其他</option></select></div>
+    <div class="grid-2">
+      <div class="form-group"><label>日期</label><input class="form-control" id="a_date" type="date" value="${todayStr()}"></div>
+      <div class="form-group"><label>参与人数</label><input class="form-control" id="a_p" type="number" value="${state.students.length}"></div>
+    </div>
+    <div class="form-group"><label>活动内容</label><textarea class="form-control" id="a_content" rows="3"></textarea></div>
+    <div class="form-group"><label>活动成果</label><input class="form-control" id="a_result"></div>
+  `;
+  openModal('新增活动', body, `<button class="btn btn-outline" onclick="closeModal()">取消</button><button class="btn btn-primary" onclick="saveActivity()">保存</button>`);
+}
+function saveActivity(){
+  state.activities.push({
+    id:'A'+Date.now(),
+    name: document.getElementById('a_name').value,
+    type: document.getElementById('a_type').value,
+    date: document.getElementById('a_date').value,
+    participants: Number(document.getElementById('a_p').value),
+    content: document.getElementById('a_content').value,
+    result: document.getElementById('a_result').value
+  });
+  saveState();renderActivity();closeModal();showToast('已新增');
+}
+function delActivity(aid){
+  if(!confirm('确定删除?'))return;
+  state.activities = state.activities.filter(a=>a.id!==aid);
+  saveState();renderActivity();showToast('已删除');
+}
+
+/* ---- 待办备忘录 ---- */
+function renderTodo(){
+  document.getElementById('content').innerHTML = `
+    <div class="card">
+      <div class="card-title"><i class="fa-solid fa-list-check" style="color:#8b5cf6"></i>待办事项</div>
+      <div class="toolbar">
+        <input class="form-control" id="todoInput" placeholder="添加待办事项..." style="flex:1" onkeydown="if(event.key==='Enter')addTodo()">
+        <input class="form-control" id="todoDate" type="date" style="width:auto">
+        <select class="form-control" id="todoPri" style="width:auto"><option value="low">低</option><option value="medium">中</option><option value="high">高</option></select>
+        <button class="btn btn-primary" onclick="addTodo()"><i class="fa-solid fa-plus"></i>添加</button>
+      </div>
+      <div>
+        ${state.todos.map(t=>`<div class="flex gap-2" style="padding:10px;border-bottom:1px solid #f1f5f9;align-items:center">
+          <input type="checkbox" ${t.done?'checked':''} onchange="toggleTodo('${t.id}')">
+          <span style="flex:1;text-decoration:${t.done?'line-through':''};color:${t.done?'#94a3b8':'#1e293b'}">${t.title}</span>
+          <span class="badge ${t.priority==='high'?'badge-red':t.priority==='medium'?'badge-yellow':'badge-gray'}">${t.priority==='high'?'高':t.priority==='medium'?'中':'低'}</span>
+          <span class="text-muted" style="font-size:12px">${t.due}</span>
+          <button class="btn btn-danger btn-sm" onclick="delTodo('${t.id}')">删除</button>
+        </div>`).join('')||'<div class="empty"><i class="fa-solid fa-check-circle"></i>暂无待办</div>'}
+      </div>
+    </div>
+    <div class="card mt-4">
+      <div class="card-title"><i class="fa-solid fa-note-sticky" style="color:#f59e0b"></i>笔记</div>
+      <div class="toolbar">
+        <input class="form-control" id="noteTitle" placeholder="笔记标题..." style="flex:1">
+        <button class="btn btn-primary" onclick="addNote()"><i class="fa-solid fa-plus"></i>添加</button>
+      </div>
+      ${state.notes.map(n=>`<div class="card mb-2" style="background:#f8fafc">
+        <div class="flex-between">
+          <strong>${n.title}</strong>
+          <span class="text-muted" style="font-size:12px">${n.date}</span>
+        </div>
+        <pre style="white-space:pre-wrap;margin:8px 0 0;font-family:inherit;font-size:13px">${n.content}</pre>
+        <button class="btn btn-danger btn-sm mt-2" onclick="delNote('${n.id}')">删除</button>
+      </div>`).join('')||'<div class="empty">暂无笔记</div>'}
+    </div>
+  `;
+}
+function addTodo(){
+  const title = document.getElementById('todoInput').value.trim();
+  if(!title){return}
+  state.todos.push({
+    id: 'TD'+Date.now(),
+    title,
+    due: document.getElementById('todoDate').value||'未设置',
+    priority: document.getElementById('todoPri').value,
+    done: false
+  });
+  document.getElementById('todoInput').value = '';
+  saveState();renderTodo();showToast('已添加');
+}
+function toggleTodo(tid){
+  const t = state.todos.find(x=>x.id===tid);
+  t.done = !t.done;
+  saveState();renderTodo();
+}
+function delTodo(tid){
+  state.todos = state.todos.filter(t=>t.id!==tid);
+  saveState();renderTodo();showToast('已删除');
+}
+function addNote(){
+  const title = document.getElementById('noteTitle').value.trim();
+  const content = prompt('请输入笔记内容:');
+  if(!title||!content)return;
+  state.notes.push({id:'N'+Date.now(), date: todayStr(), title, content});
+  saveState();renderTodo();showToast('已添加');
+}
+function delNote(nid){
+  state.notes = state.notes.filter(n=>n.id!==nid);
+  saveState();renderTodo();showToast('已删除');
+}
+
+/* ---- 爆款视频 ---- */
+function renderHotVideo(){
+  document.getElementById('content').innerHTML = `
+    <div class="card">
+      <div class="flex-between mb-3">
+        <div class="card-title"><i class="fa-solid fa-fire" style="color:#ef4444"></i>B 站热门视频</div>
+        <div>
+          <span class="text-muted" id="hotvideoMeta" style="font-size:12px;margin-right:8px"></span>
+          <button class="btn btn-outline" onclick="loadHotVideo(true)"><i class="fa-solid fa-rotate"></i>刷新</button>
+        </div>
+      </div>
+      <div class="text-muted mb-3" style="font-size:13px">数据来自 B 站热门视频榜,可用于发掘适合学生观看的优质学习内容</div>
+      <div id="hotvideoList" class="hotvideo-grid">
+        <div class="empty"><i class="fa-solid fa-spinner fa-spin"></i>正在加载...</div>
+      </div>
+    </div>
+  `;
+  loadHotVideo();
+}
+
+let hotVideoCache = null;
+async function loadHotVideo(forceRefresh){
+  const list = document.getElementById('hotvideoList');
+  const meta = document.getElementById('hotvideoMeta');
+  if(!list) return;
+  if(!forceRefresh && hotVideoCache){
+    renderHotVideoList(hotVideoCache);
+    return;
+  }
+  list.innerHTML = '<div class="empty"><i class="fa-solid fa-spinner fa-spin"></i>正在从 B 站获取热门视频...</div>';
+  try {
+    const resp = await fetch('/api/bilibili/hot', { cache: 'no-store' });
+    const data = await resp.json();
+    hotVideoCache = data;
+    renderHotVideoList(data);
+    if(meta){
+      const src = resp.headers.get('X-Data-Source') === 'fallback' ? '示例数据' : 'B 站实时';
+      const t = new Date();
+      meta.textContent = `${src} · 更新于 ${t.getHours()}:${String(t.getMinutes()).padStart(2,'0')}`;
+    }
+  } catch (err) {
+    list.innerHTML = `<div class="empty"><i class="fa-solid fa-triangle-exclamation"></i>加载失败,请检查网络后重试<br><br><button class="btn btn-primary" onclick="loadHotVideo(true)">重试</button></div>`;
+  }
+}
+
+function renderHotVideoList(videos){
+  const list = document.getElementById('hotvideoList');
+  if(!videos || videos.length === 0){
+    list.innerHTML = '<div class="empty"><i class="fa-solid fa-inbox"></i>暂无视频数据</div>';
+    return;
+  }
+  list.innerHTML = videos.map((v, idx) => {
+    const rankBadge = idx < 3
+      ? `<span class="hot-rank top3">${idx+1}</span>`
+      : `<span class="hot-rank">${idx+1}</span>`;
+    const playNum = formatNum(v.play);
+    const likeNum = formatNum(v.like || 0);
+    const cover = v.pic || `https://picsum.photos/seed/${v.bvid || idx}/320/180`;
+    return `
+      <div class="hot-card" onclick="window.open('${escapeAttr(v.url)}','_blank')">
+        <div class="hot-cover">
+          <img src="${escapeAttr(cover)}" alt="${escapeAttr(v.title)}" loading="lazy" onerror="this.src='https://picsum.photos/seed/${idx}/320/180'">
+          ${rankBadge}
+          <span class="hot-duration">${v.duration||'--'}</span>
+        </div>
+        <div class="hot-info">
+          <div class="hot-title">${escapeHTML(v.title)}</div>
+          <div class="hot-meta">
+            <span><i class="fa-solid fa-user"></i> ${escapeHTML(v.author||'匿名')}</span>
+            ${v.tname?`<span class="hot-tag">${escapeHTML(v.tname)}</span>`:''}
+          </div>
+          <div class="hot-stats">
+            <span><i class="fa-solid fa-play"></i> ${playNum}</span>
+            <span><i class="fa-solid fa-thumbs-up"></i> ${likeNum}</span>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function escapeHTML(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function escapeAttr(s){return String(s||'').replace(/"/g,'&quot;')}
+function formatNum(n){
+  if(!n||n<0) return '0';
+  if(n>=10000) return (n/10000).toFixed(1)+'万';
+  if(n>=1000) return (n/1000).toFixed(1)+'k';
+  return String(n);
+}
+
+/* ---- 重要新闻 ---- */
+function renderNews(){
+  document.getElementById('content').innerHTML = `
+    <div class="card">
+      <div class="flex-between mb-3">
+        <div class="card-title"><i class="fa-solid fa-newspaper" style="color:#06b6d4"></i>重要教育新闻</div>
+        <div>
+          <span class="text-muted" id="newsMeta" style="font-size:12px;margin-right:8px"></span>
+          <button class="btn btn-outline" onclick="loadNews(true)"><i class="fa-solid fa-rotate"></i>刷新</button>
+        </div>
+      </div>
+      <div class="text-muted mb-3" style="font-size:13px">数据来自中国新闻网教育频道,实时获取最新教育政策与行业动态</div>
+      <div id="newsList">
+        <div class="empty"><i class="fa-solid fa-spinner fa-spin"></i>正在加载...</div>
+      </div>
+    </div>
+  `;
+  loadNews();
+}
+
+let newsCache = null;
+async function loadNews(forceRefresh){
+  const list = document.getElementById('newsList');
+  const meta = document.getElementById('newsMeta');
+  if(!list) return;
+  if(!forceRefresh && newsCache){
+    renderNewsList(newsCache);
+    return;
+  }
+  list.innerHTML = '<div class="empty"><i class="fa-solid fa-spinner fa-spin"></i>正在获取最新教育新闻...</div>';
+  try {
+    const resp = await fetch('/api/news/edu', { cache: 'no-store' });
+    const data = await resp.json();
+    newsCache = data;
+    renderNewsList(data);
+    if(meta){
+      const src = resp.headers.get('X-Data-Source') === 'fallback' ? '示例数据' : '中新网实时';
+      const t = new Date();
+      meta.textContent = `${src} · 更新于 ${t.getHours()}:${String(t.getMinutes()).padStart(2,'0')}`;
+    }
+  } catch (err) {
+    list.innerHTML = `<div class="empty"><i class="fa-solid fa-triangle-exclamation"></i>加载失败<br><br><button class="btn btn-primary" onclick="loadNews(true)">重试</button></div>`;
+  }
+}
+
+function renderNewsList(items){
+  const list = document.getElementById('newsList');
+  if(!items || items.length === 0){
+    list.innerHTML = '<div class="empty"><i class="fa-solid fa-inbox"></i>暂无新闻</div>';
+    return;
+  }
+  list.innerHTML = items.map((n, idx) => `
+    <div class="news-item" onclick="window.open('${escapeAttr(n.link)}','_blank')">
+      <div class="news-rank">${idx+1}</div>
+      <div class="news-body">
+        <div class="news-title">${escapeHTML(n.title)}</div>
+        <div class="news-desc">${escapeHTML(n.description)}</div>
+        <div class="news-foot">
+          ${n.category?`<span class="badge badge-blue">${escapeHTML(n.category)}</span>`:''}
+          <span class="text-muted"><i class="fa-regular fa-clock"></i> ${escapeHTML(n.pubDate)}</span>
+          <span class="text-muted">${escapeHTML(n.source||'')}</span>
+        </div>
+      </div>
+      <i class="fa-solid fa-chevron-right news-arrow"></i>
+    </div>
+  `).join('');
+}
+
+/* ---- 数据管理 ---- */
+function renderData(){
+  document.getElementById('content').innerHTML = `
+    <div class="card">
+      <div class="card-title"><i class="fa-solid fa-database" style="color:#8b5cf6"></i>数据管理</div>
+      <div class="grid-2">
+        <div class="card" style="background:#f0f9ff">
+          <h4><i class="fa-solid fa-download" style="color:#6d28d9"></i> 全量数据备份</h4>
+          <p class="text-muted">导出所有数据(学生、成绩、违纪、作业、请假等)为 JSON 文件,可用于恢复</p>
+          <button class="btn btn-primary mt-2" onclick="exportAll()"><i class="fa-solid fa-download"></i>导出备份</button>
+        </div>
+        <div class="card" style="background:#f0fdf4">
+          <h4><i class="fa-solid fa-upload" style="color:#059669"></i> 数据恢复</h4>
+          <p class="text-muted">从备份文件恢复数据(将覆盖当前数据)</p>
+          <input type="file" id="restoreFile" accept=".json" style="display:none" onchange="restoreData()">
+          <button class="btn btn-success mt-2" onclick="document.getElementById('restoreFile').click()"><i class="fa-solid fa-upload"></i>选择文件恢复</button>
+        </div>
+      </div>
+      <div class="card mt-4" style="background:#fef2f2">
+        <h4 style="color:#dc2626"><i class="fa-solid fa-triangle-exclamation"></i> 重置系统</h4>
+        <p class="text-muted">清空所有数据,重新载入预置演示数据。请谨慎操作!</p>
+        <button class="btn btn-danger mt-2" onclick="resetData()"><i class="fa-solid fa-rotate-right"></i>重置为演示数据</button>
+      </div>
+      <div class="card mt-4">
+        <div class="card-title">数据统计</div>
+        <table>
+          <tr><th>模块</th><th>数据量</th><th>操作</th></tr>
+          <tr><td>学生</td><td>${state.students.length}</td><td><button class="btn btn-outline btn-sm" onclick="exportStuExcel()">导出</button></td></tr>
+          <tr><td>考试</td><td>${state.exams.length}</td><td>-</td></tr>
+          <tr><td>违纪</td><td>${state.violations.length}</td><td>-</td></tr>
+          <tr><td>作业</td><td>${state.homework.length}</td><td>-</td></tr>
+          <tr><td>请假</td><td>${state.leaves.length}</td><td>-</td></tr>
+          <tr><td>工作留痕</td><td>${state.works.length}</td><td>-</td></tr>
+          <tr><td>谈话</td><td>${state.talks.length}</td><td>-</td></tr>
+          <tr><td>家校沟通</td><td>${state.parents.length}</td><td>-</td></tr>
+          <tr><td>活动</td><td>${state.activities.length}</td><td>-</td></tr>
+          <tr><td>待办</td><td>${state.todos.length}</td><td>-</td></tr>
+        </table>
+      </div>
+    </div>
+  `;
+}
+function exportAll(){
+  const blob = new Blob([JSON.stringify(state,null,2)],{type:'application/json'});
+  saveAs(blob, `班主任工作台-数据备份-${todayStr()}.json`);
+  showToast('已导出');
+}
+function restoreData(){
+  const file = document.getElementById('restoreFile').files[0];
+  if(!file)return;
+  if(!confirm('恢复将覆盖当前所有数据,确定?'))return;
+  const reader = new FileReader();
+  reader.onload = e=>{
+    try{
+      state = Object.assign({}, DEFAULT_STATE, JSON.parse(e.target.result));
+      saveState();renderData();showToast('恢复成功');
+    }catch(e){showToast('文件格式错误')}
+  };
+  reader.readAsText(file);
+}
+function resetData(){
+  if(!confirm('重置将清空所有数据,确定?'))return;
+  state = seedData(JSON.parse(JSON.stringify(DEFAULT_STATE)));
+  saveState();renderData();goPage('dashboard');showToast('已重置');
+}
+
+/* ---- 系统设置 ---- */
+function renderSettings(){
+  document.getElementById('content').innerHTML = `
+    <div class="card">
+      <div class="card-title"><i class="fa-solid fa-gear" style="color:#64748b"></i>系统设置</div>
+      <div class="grid-2">
+        <div class="form-group"><label>班级名称</label><input class="form-control" id="set_class" value="${state.classInfo.name}"></div>
+        <div class="form-group"><label>班主任</label><input class="form-control" id="set_teacher" value="${state.classInfo.teacher}"></div>
+        <div class="form-group"><label>班级人数</label><input class="form-control" id="set_count" type="number" value="${state.classInfo.count}"></div>
+      </div>
+      <button class="btn btn-primary mt-2" onclick="saveSettings()"><i class="fa-solid fa-save"></i>保存设置</button>
+      <div class="card mt-4" style="background:#f8fafc">
+        <h4>关于</h4>
+        <p>班主任管理工作台 v1.0</p>
+        <p class="text-muted">基于纯前端技术构建,数据保存在浏览器本地( localStorage ),刷新不丢失。</p>
+        <p class="text-muted">支持:Excel 导入导出、Word 文档导出、图片导出、全量备份恢复。</p>
+      </div>
+    </div>
+  `;
+}
+function saveSettings(){
+  state.classInfo.name = document.getElementById('set_class').value;
+  state.classInfo.teacher = document.getElementById('set_teacher').value;
+  state.classInfo.count = Number(document.getElementById('set_count').value);
+  document.getElementById('className').textContent = state.classInfo.name;
+  document.getElementById('teacherInfo').textContent = `${state.classInfo.teacher} · ${state.classInfo.count}人`;
+  saveState();showToast('已保存');
+}
+
+/* ===================== PWA ===================== */
+// 注册 Service Worker
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    // SW 路径: 生产环境用根路径,本地子路径自动适应
+    const swPath = location.pathname.includes('/teacher-platform/') ? '/teacher-platform/sw.js' : '/sw.js';
+    navigator.serviceWorker.register(swPath)
+      .then(reg => console.log('[SW] Registered:', reg.scope))
+      .catch(err => console.warn('[SW] Failed:', err));
+  });
+  // 监听更新提示
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (window._swUpdating) showToast('新版本已激活,刷新可获取最新内容');
+  });
+}
+
+/* ===================== 启动 ===================== */
+function init(){
+  saveState();
+  document.getElementById('todayDate').textContent = today();
+  buildNav();
+  goPage('dashboard');
+  // 移动端
+  document.getElementById('menuToggle').onclick = ()=>document.getElementById('sidebar').classList.toggle('open');
+  // 点击modal外部关闭
+  document.getElementById('modal').onclick = e=>{
+    if(e.target.id==='modal') closeModal();
+  };
+  // 处理 PWA shortcuts
+  handlePWAShortcuts();
+}
+
+// 处理从主屏幕图标启动时的 shortcut 参数
+function handlePWAShortcuts(){
+  const params = new URLSearchParams(location.search);
+  const action = params.get('action');
+  if(action){
+    const map = {leave:'leave', score:'score_input', students:'students_list'};
+    const page = map[action];
+    if(page) setTimeout(()=>goPage(page), 100);
+  }
+}
+init();
+</script>
+</body>
+</html>

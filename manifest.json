@@ -1,0 +1,63 @@
+{
+  "name": "班主任管理工作台",
+  "short_name": "班主任",
+  "description": "一站式班级管理工具,涵盖学生管理、成绩分析、违纪统计、作业、请假、排座位、家校沟通等核心功能",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f8f6fc",
+  "theme_color": "#7c3aed",
+  "lang": "zh-CN",
+  "dir": "ltr",
+  "categories": ["education", "productivity", "utilities"],
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "班主任管理工作台"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "记请假",
+      "short_name": "请假",
+      "url": "/?action=leave",
+      "icons": [{"src": "/icons/icon-192.png", "sizes": "192x192"}]
+    },
+    {
+      "name": "成绩录入",
+      "short_name": "成绩",
+      "url": "/?action=score",
+      "icons": [{"src": "/icons/icon-192.png", "sizes": "192x192"}]
+    },
+    {
+      "name": "学生管理",
+      "short_name": "学生",
+      "url": "/?action=students",
+      "icons": [{"src": "/icons/icon-192.png", "sizes": "192x192"}]
+    }
+  ]
+}
